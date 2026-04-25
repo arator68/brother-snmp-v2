@@ -2,7 +2,7 @@
   "domain": "brother_snmp_v2",
   "name": "Brother SNMP Scanner",
   "version": "1.0.1",
-  "config_flow": true,
+  "config_flow": false,
   "documentation": "https://github.com/arator68/brother-snmp-v2",
   "issue_tracker": "https://github.com/arator68/brother-snmp-v2/issues",
   "codeowners": ["@arator68"],
