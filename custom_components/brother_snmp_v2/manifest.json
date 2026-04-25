@@ -2,13 +2,13 @@
   "domain": "brother_snmp_v2",
   "name": "Brother SNMP Scanner",
   "version": "1.0.1",
+  "config_flow": true,
   "documentation": "https://github.com/arator68/brother-snmp-v2",
   "issue_tracker": "https://github.com/arator68/brother-snmp-v2/issues",
-  "codeowners": ["Rainer Koch"],
+  "codeowners": ["@arator68"],
   "requirements": [
     "pysnmp>=7.0.0",
     "pyasn1<0.6.0"
   ],
-  "iot_class": "local_polling",
-  "config_flow": true
+  "iot_class": "local_polling"
 }
