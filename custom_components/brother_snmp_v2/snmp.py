@@ -1,23 +1,22 @@
-from pysnmp.hlapi.v3arch.asyncio import *
 import asyncio
+from pysnmp.hlapi.v3arch.asyncio import (
+    SnmpEngine,
+    CommunityData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    get_cmd,
+)
 
-_SNMP_ENGINE = None
-_LOCK = asyncio.Lock()
-
-async def get_engine():
-    global _SNMP_ENGINE
-    async with _LOCK:
-        if _SNMP_ENGINE is None:
-            _SNMP_ENGINE = SnmpEngine()
-    return _SNMP_ENGINE
+_ENGINE = SnmpEngine()
 
 
 async def snmp_get(host, community, oid):
-    engine = await get_engine()
     transport = await UdpTransportTarget.create((host, 161))
 
     error_indication, error_status, _, var_binds = await get_cmd(
-        engine,
+        _ENGINE,
         CommunityData(community, mpModel=1),
         transport,
         ContextData(),
@@ -33,5 +32,4 @@ async def snmp_get(host, community, oid):
 async def snmp_bulk(host, community, oids):
     tasks = [snmp_get(host, community, oid) for oid in oids]
     results = await asyncio.gather(*tasks)
-
     return dict(zip(oids, results))
