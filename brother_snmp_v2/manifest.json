@@ -1,0 +1,12 @@
+{
+  "domain": "brother_snmp_v2",
+  "name": "Brother Scanner SNMP V2",
+  "version": "2.0",
+  "config_flow": true,
+  "requirements": [
+    "pysnmp>=7.0.0",
+    "pyasn1<0.6.0"
+  ],
+  "dependencies": [],
+  "codeowners": []
+}
