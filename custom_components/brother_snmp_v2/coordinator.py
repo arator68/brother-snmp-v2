@@ -57,6 +57,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
             for oid, value in raw.items():
                 if value is None or value == "":
                     continue
+                data[oid] = self._convert(value)
 
             oid_norm = oid.rstrip(".0")
 
