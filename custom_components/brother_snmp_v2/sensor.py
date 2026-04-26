@@ -1,6 +1,6 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
+from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 
@@ -9,11 +9,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     async_add_entities([
-        BrotherPagesSensor(coordinator),
-        BrotherModelSensor(coordinator),
-        BrotherSerialSensor(coordinator),
-        BrotherFirmwareSensor(coordinator),
-        BrotherRollerSensor(coordinator),
+        BrotherPages(coordinator),
+        BrotherRoller(coordinator),
     ])
 
 
@@ -22,80 +19,32 @@ class Base(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
 
     @property
-    def available(self):
-        return self.coordinator.data.get("online", False)
-
-    @property
     def device_info(self):
         return DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.data.get("serial"))},
-            name=self.coordinator.data.get("model") or "Brother Scanner",
+            identifiers={(DOMAIN, self.coordinator.host)},
             manufacturer="Brother",
-            model=self.coordinator.data.get("model"),
-            sw_version=self.coordinator.data.get("firmware"),
-            serial_number=self.coordinator.data.get("serial"),
         )
 
 
-class BrotherPagesSensor(Base):
-    _attr_name = "Brother Seiten gesamt"
-    _attr_state_class = "measurement"
+class BrotherPages(Base):
+    _attr_name = "Pages"
 
     @property
     def unique_id(self):
-        return f"{self.coordinator.data.get('serial')}_pages"
+        return f"{self.coordinator.host}_pages"
 
     @property
     def state(self):
-        return self.coordinator.data.get("pages_total")
+        return self.coordinator.data["pages"]
 
 
-class BrotherModelSensor(Base):
-    _attr_name = "Brother Modell"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+class BrotherRoller(Base):
+    _attr_name = "Roller"
 
     @property
     def unique_id(self):
-        return f"{self.coordinator.data.get('serial')}_model"
+        return f"{self.coordinator.host}_roller"
 
     @property
     def state(self):
-        return self.coordinator.data.get("model")
-
-
-class BrotherSerialSensor(Base):
-    _attr_name = "Brother Seriennummer"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.data.get('serial')}_serial"
-
-    @property
-    def state(self):
-        return self.coordinator.data.get("serial")
-
-
-class BrotherFirmwareSensor(Base):
-    _attr_name = "Brother Firmware"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.data.get('serial')}_firmware"
-
-    @property
-    def state(self):
-        return self.coordinator.data.get("firmware")
-
-
-class BrotherRollerSensor(Base):
-    _attr_name = "Brother Roller Zähler"
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.data.get('serial')}_roller"
-
-    @property
-    def state(self):
-        return self.coordinator.data.get("roller")
+        return self.coordinator.data["roller"]
