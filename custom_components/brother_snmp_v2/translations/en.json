@@ -3,7 +3,11 @@
     "step": {
       "user": {
         "title": "Brother Scanner",
-        "description": "Enter connection details"
+        "description": "Enter connection details",
+        "data": {
+          "host": "IP address",
+          "community": "SNMP community"
+        }
       }
     }
   }

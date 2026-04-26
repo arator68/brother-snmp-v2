@@ -1,4 +1,6 @@
 import asyncio
+import logging
+
 from pysnmp.hlapi.asyncio import (
     SnmpEngine,
     CommunityData,
@@ -9,24 +11,35 @@ from pysnmp.hlapi.asyncio import (
     getCmd,
 )
 
+_LOGGER = logging.getLogger(__name__)
 _ENGINE = SnmpEngine()
 
 
 async def snmp_get(host, community, oid):
-    transport = await UdpTransportTarget.create((host, 161))
+    try:
+        transport = await UdpTransportTarget.create((host, 161))
 
-    error_indication, error_status, _, var_binds = await getCmd(
-        _ENGINE,
-        CommunityData(community),
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(oid)),
-    )
+        error_indication, error_status, _, var_binds = await getCmd(
+            _ENGINE,
+            CommunityData(community),
+            transport,
+            ContextData(),
+            ObjectType(ObjectIdentity(oid)),
+        )
 
-    if error_indication or error_status:
+        if error_indication:
+            _LOGGER.debug("SNMP error: %s", error_indication)
+            return None
+
+        if error_status:
+            _LOGGER.debug("SNMP status error: %s", error_status)
+            return None
+
+        return str(var_binds[0][1]) if var_binds else None
+
+    except Exception as err:
+        _LOGGER.error("SNMP exception: %s", err)
         return None
-
-    return str(var_binds[0][1]) if var_binds else None
 
 
 async def snmp_bulk(host, community, oids):

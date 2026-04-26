@@ -10,7 +10,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = BrotherCoordinator(
         hass,
         entry.data["host"],
-        entry.data["community"]
+        entry.data["community"],
     )
 
     await coordinator.async_config_entry_first_refresh()
@@ -32,10 +32,14 @@ class Base(CoordinatorEntity, SensorEntity):
         self._host = host
 
     @property
+    def available(self):
+        return self.coordinator.data.get("online", False)
+
+    @property
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self._host)},
-            name=self.coordinator.data.get("model"),
+            name=self.coordinator.data.get("model") or "Brother Scanner",
             manufacturer="Brother",
             model=self.coordinator.data.get("model"),
             sw_version=self.coordinator.data.get("firmware"),
@@ -44,7 +48,10 @@ class Base(CoordinatorEntity, SensorEntity):
 
 
 class BrotherPagesSensor(Base):
-    _attr_name = "Brother Seiten gesamt"
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Seiten gesamt"
+        self._attr_unique_id = f"{h}_pages"
 
     @property
     def state(self):
@@ -52,7 +59,10 @@ class BrotherPagesSensor(Base):
 
 
 class BrotherModelSensor(Base):
-    _attr_name = "Brother Modell"
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Modell"
+        self._attr_unique_id = f"{h}_model"
 
     @property
     def state(self):
@@ -60,7 +70,10 @@ class BrotherModelSensor(Base):
 
 
 class BrotherSerialSensor(Base):
-    _attr_name = "Brother Seriennummer"
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Seriennummer"
+        self._attr_unique_id = f"{h}_serial"
 
     @property
     def state(self):
@@ -68,7 +81,10 @@ class BrotherSerialSensor(Base):
 
 
 class BrotherFirmwareSensor(Base):
-    _attr_name = "Brother Firmware"
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Firmware"
+        self._attr_unique_id = f"{h}_firmware"
 
     @property
     def state(self):
@@ -76,7 +92,10 @@ class BrotherFirmwareSensor(Base):
 
 
 class BrotherRollerSensor(Base):
-    _attr_name = "Brother Roller Zähler"
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Roller Zähler"
+        self._attr_unique_id = f"{h}_roller"
 
     @property
     def state(self):

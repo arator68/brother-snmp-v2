@@ -1,10 +1,11 @@
 {
   "config": {
     "error": {
-      "cannot_connect": "Keine Verbindung möglich",
-      "timeout": "Timeout beim Gerät",
-      "not_brother": "Kein Brother Gerät erkannt",
-      "unknown": "Unbekannter Fehler"
+      "cannot_connect": "Cannot connect",
+      "timeout": "Timeout",
+      "not_brother": "Not a Brother device",
+      "unknown": "Unknown error",
+      "invalid_host": "Invalid host"
     }
   }
 }

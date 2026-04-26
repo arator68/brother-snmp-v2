@@ -2,7 +2,10 @@ from datetime import timedelta
 import logging
 import re
 
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .snmp import snmp_bulk
 from .const import *
@@ -22,23 +25,30 @@ class BrotherCoordinator(DataUpdateCoordinator):
         self.community = community
 
     async def _async_update_data(self):
-        data = await snmp_bulk(
-            self.host,
-            self.community,
-            [PAGE_OID, MODEL_OID, SERIAL_OID, FIRMWARE_OID, ROLLER_OID],
-        )
+        try:
+            data = await snmp_bulk(
+                self.host,
+                self.community,
+                [PAGE_OID, MODEL_OID, SERIAL_OID, FIRMWARE_OID, ROLLER_OID],
+            )
 
-        def clean(val):
-            if not val:
-                return None
-            match = re.search(r'"(.+)"', val)
-            return match.group(1) if match else val
+            if not data:
+                raise UpdateFailed("No SNMP data")
 
-        return {
-            "online": data.get(PAGE_OID) is not None,
-            "pages_total": int(data.get(PAGE_OID)) if data.get(PAGE_OID) else None,
-            "model": clean(data.get(MODEL_OID)),
-            "serial": clean(data.get(SERIAL_OID)),
-            "firmware": clean(data.get(FIRMWARE_OID)),
-            "roller": int(data.get(ROLLER_OID)) if data.get(ROLLER_OID) else None,
-        }
+            def clean(val):
+                if not val:
+                    return None
+                match = re.search(r'"(.+)"', val)
+                return match.group(1) if match else val
+
+            return {
+                "online": data.get(PAGE_OID) is not None,
+                "pages_total": int(data.get(PAGE_OID)) if data.get(PAGE_OID) else None,
+                "model": clean(data.get(MODEL_OID)),
+                "serial": clean(data.get(SERIAL_OID)),
+                "firmware": clean(data.get(FIRMWARE_OID)),
+                "roller": int(data.get(ROLLER_OID)) if data.get(ROLLER_OID) else None,
+            }
+
+        except Exception as err:
+            raise UpdateFailed(f"SNMP error: {err}") from err

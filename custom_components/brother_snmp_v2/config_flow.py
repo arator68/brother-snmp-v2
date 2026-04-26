@@ -17,40 +17,43 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            host = user_input[CONF_HOST]
-            community = user_input[CONF_COMMUNITY]
+            host = user_input.get(CONF_HOST)
+            community = user_input.get(CONF_COMMUNITY)
 
-            try:
-                sysdescr = await asyncio.wait_for(
-                    snmp_get(host, community, TEST_OID), timeout=5
-                )
-
-                if sysdescr is None:
-                    errors["base"] = "cannot_connect"
-                else:
-                    model_raw = await asyncio.wait_for(
-                        snmp_get(host, community, MODEL_OID), timeout=5
+            if not host:
+                errors["host"] = "invalid_host"
+            else:
+                try:
+                    sysdescr = await asyncio.wait_for(
+                        snmp_get(host, community, TEST_OID), timeout=5
                     )
 
-                    if model_raw is None:
-                        errors["base"] = "not_brother"
+                    if sysdescr is None:
+                        errors["base"] = "cannot_connect"
                     else:
-                        match = re.search(r'"(.+)"', model_raw)
-                        model = match.group(1) if match else model_raw
-
-                        return self.async_create_entry(
-                            title=f"{model} ({host})",
-                            data={
-                                CONF_HOST: host,
-                                CONF_COMMUNITY: community,
-                                "model": model,
-                            },
+                        model_raw = await asyncio.wait_for(
+                            snmp_get(host, community, MODEL_OID), timeout=5
                         )
 
-            except asyncio.TimeoutError:
-                errors["base"] = "timeout"
-            except Exception:
-                errors["base"] = "unknown"
+                        if model_raw is None:
+                            errors["base"] = "not_brother"
+                        else:
+                            match = re.search(r'"(.+)"', model_raw)
+                            model = match.group(1) if match else model_raw
+
+                            return self.async_create_entry(
+                                title=f"{model} ({host})",
+                                data={
+                                    CONF_HOST: host,
+                                    CONF_COMMUNITY: community,
+                                    "model": model,
+                                },
+                            )
+
+                except asyncio.TimeoutError:
+                    errors["base"] = "timeout"
+                except Exception:
+                    errors["base"] = "unknown"
 
         return self.async_show_form(
             step_id="user",
