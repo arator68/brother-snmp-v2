@@ -17,7 +17,7 @@ _ENGINE = SnmpEngine()
 
 async def snmp_get(host, community, oid):
     try:
-        transport = await UdpTransportTarget.create((host, 161))
+        transport = UdpTransportTarget((host, 161))
 
         error_indication, error_status, _, var_binds = await getCmd(
             _ENGINE,
