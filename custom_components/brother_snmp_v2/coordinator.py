@@ -79,7 +79,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
                 # 🔥 Whitelist
                 for good_oid, name in GOOD_PRINTER_OIDS.items():
-                    if oid_norm.startswith(good_oid):
+                    if oid_norm == good_oid:
                         data[name] = self._convert(value)
 
         # =========================
