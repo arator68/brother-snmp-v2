@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import timedelta
 from .const import GOOD_SCANNER_OIDS
+from .const import GOOD_PRINTER_OIDS
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -53,9 +54,15 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
             raw = await snmp_bulk(self.host, self.community, oids)
 
-            for s in self.sensors:
-                val = raw.get(s["oid"])
-                data[s["key"]] = self._convert(val)
+            for oid, value in raw.items():
+                if value is None or value == "":
+                    continue
+
+            oid_norm = oid.rstrip(".0")
+
+            for good_oid, name in GOOD_PRINTER_OIDS.items():
+                if oid_norm.startswith(good_oid):
+                    data[name] = self._convert(value)
 
         # =========================
         # 📄 SCANNER (WALK)

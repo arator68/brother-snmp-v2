@@ -17,10 +17,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # 🖨️ PRINTER
     # =========================
     if coordinator.device_class == "PRINTER":
-        sensors.extend([
-            BrotherAutoSensor(coordinator, s)
-            for s in coordinator.sensors
-        ])
+        if coordinator.device_class == "PRINTER":
+            for key in coordinator.data.keys():
+                sensors.append(BrotherPrinterSensor(coordinator, key))
 
     # =========================
     # 📄 SCANNER (nur gute OIDs!)
@@ -39,6 +38,45 @@ async def async_setup_entry(hass, entry, async_add_entities):
             sensors.append(BrotherWalkSensor(coordinator, oid, name))
 
     async_add_entities(sensors)
+
+# =========================
+# 🖨️ PRINTER SENSOR
+# =========================
+class BrotherPrinterSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator, key):
+        super().__init__(coordinator)
+        self._key = key
+
+    @property
+    def name(self):
+        return self._key
+
+    @property
+    def unique_id(self):
+        return f"{self.coordinator.host}_{self._key}"
+
+    @property
+    def state(self):
+        return self.coordinator.data.get(self._key)
+
+    @property
+    def icon(self):
+        name = self._key.lower()
+
+        if "toner" in name:
+            return "mdi:printer"
+        if "page" in name:
+            return "mdi:file-document"
+        if "jam" in name:
+            return "mdi:alert"
+        return "mdi:printer-outline"
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.host)},
+            manufacturer="Brother",
+        )
 
 
 # =========================

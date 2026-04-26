@@ -34,3 +34,20 @@ GOOD_SCANNER_OIDS = {
     # Status (optional – später optimieren)
     "1.3.6.1.4.1.2435.2.3.9.1.1.2.9": "Device Status",
 }
+
+GOOD_PRINTER_OIDS = {
+    # Seitenzähler
+    "1.3.6.1.2.1.43.10.2.1.4.1.1": "Printed Pages",
+
+    # Brother spezifisch
+    "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.52": "Total Pages",
+
+    # Toner Status
+    "1.3.6.1.4.1.2435.2.3.9.1.1.2.10.1": "Toner Black",
+    "1.3.6.1.4.1.2435.2.3.9.1.1.2.10.2": "Toner Cyan",
+    "1.3.6.1.4.1.2435.2.3.9.1.1.2.10.3": "Toner Magenta",
+    "1.3.6.1.4.1.2435.2.3.9.1.1.2.10.4": "Toner Yellow",
+
+    # Fehler
+    "1.3.6.1.4.1.2435.2.3.9.1.1.2.9": "Paper Jam",
+}
