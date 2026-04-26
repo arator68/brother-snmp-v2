@@ -38,6 +38,12 @@ GOOD_SCANNER_OIDS = {
 GOOD_PRINTER_OIDS = {
     # ✔ dein echter Counter
     "1.3.6.1.2.1.43.10.2.1.4.1.1": "Printed Pages",
+    
+    "1.3.6.1.2.1.43.11.1.1.9.1.7": "Remaining pages of the cyan drum",
+    "1.3.6.1.2.1.43.11.1.1.9.1.8": "Remaining pages of the yellow drum",
+    "1.3.6.1.2.1.43.11.1.1.9.1.9": "Remaining pages of the magenta drum",
+    "1.3.6.1.2.1.43.11.1.1.9.1.10": "Remaining pages of the black drum",
+    
 
     # ✔ dein Gerätename
     "1.3.6.1.2.1.25.3.2.1.3.1": "Device Name",
