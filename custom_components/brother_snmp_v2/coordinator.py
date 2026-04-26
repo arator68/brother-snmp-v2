@@ -34,6 +34,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
                 base = os.path.dirname(__file__)
                 mib_path = os.path.join(base, "BROTHER-Printer-MIB.json")
                 self.sensors = load_mib(mib_path)
+                _LOGGER.warning(f"MIB sensors loaded: {len(self.sensors)}")
             except Exception as e:
                 _LOGGER.warning(f"MIB load failed: {e}")
                 self.sensors = []
@@ -46,24 +47,37 @@ class BrotherCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         data = {}
 
-        # =========================
-        # 🖨️ PRINTER (MIB)
+         # =========================
+        # 🖨️ PRINTER
         # =========================
         if self.device_class == "PRINTER":
-            oids = [s["oid"] for s in self.sensors]
+
+            # 🔥 FALLBACK wenn MIB leer ist
+            if not self.sensors:
+                oids = [
+                    "1.3.6.1.2.1.43.10.2.1.4.1.1",  # Printed Pages
+                    "1.3.6.1.2.1.25.3.2.1.3.1",     # Device Name
+                ]
+            else:
+                oids = [s["oid"] for s in self.sensors]
 
             raw = await snmp_bulk(self.host, self.community, oids)
 
+            # 🔍 DEBUG
+            _LOGGER.warning(f"PRINTER RAW: {raw}")
+
             for oid, value in raw.items():
+
                 if value is None or value == "":
                     continue
-                data[oid] = self._convert(value)
 
-            oid_norm = oid.rstrip(".0")
+                oid_norm = oid.rstrip(".0")
 
-            for good_oid, name in GOOD_PRINTER_OIDS.items():
-                if oid_norm.startswith(good_oid):
-                    data[name] = self._convert(value)
+                # 🔥 Whitelist
+                for good_oid, name in GOOD_PRINTER_OIDS.items():
+                    if oid_norm.startswith(good_oid):
+                        data[name] = self._convert(value)
+
 
         # =========================
         # 📄 SCANNER (WALK)
