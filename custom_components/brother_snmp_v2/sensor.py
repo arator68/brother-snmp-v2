@@ -8,15 +8,26 @@ from .const import DOMAIN
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    sensors = [
-        BrotherSensor(coordinator, s)
-        for s in coordinator.profile["sensors"]
-    ]
+    sensors = []
+
+    # 🖨️ Printer
+    if coordinator.device_class == "PRINTER":
+        sensors.extend([
+            BrotherAutoSensor(coordinator, s)
+            for s in coordinator.sensors
+        ])
+
+    # 📄 Scanner
+    elif coordinator.device_class == "SCANNER":
+        walk = coordinator.data.get("walk", {})
+
+        for oid in list(walk.keys())[:20]:  # limit!
+            sensors.append(BrotherWalkSensor(coordinator, oid))
 
     async_add_entities(sensors)
 
 
-class BrotherSensor(CoordinatorEntity, SensorEntity):
+class BrotherAutoSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, config):
         super().__init__(coordinator)
         self._config = config
@@ -38,5 +49,22 @@ class BrotherSensor(CoordinatorEntity, SensorEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.host)},
             manufacturer="Brother",
-            name=self.coordinator.device_class,
         )
+
+
+class BrotherWalkSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator, oid):
+        super().__init__(coordinator)
+        self._oid = oid
+
+    @property
+    def name(self):
+        return self.coordinator.friendly_name(self._oid)
+
+    @property
+    def unique_id(self):
+        return f"{self.coordinator.host}_{self._oid}"
+
+    @property
+    def state(self):
+        return self.coordinator.data["walk"].get(self._oid)
