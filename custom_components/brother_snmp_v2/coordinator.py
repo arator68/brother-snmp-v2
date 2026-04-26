@@ -114,28 +114,41 @@ class BrotherCoordinator(DataUpdateCoordinator):
     # =========================
     def friendly_name(self, oid, value=None):
 
-        # 🔥 1. Known OIDs (beste Qualität)
-        if oid in KNOWN_OIDS:
-            return KNOWN_OIDS[oid]
+    # 🔥 OID normalisieren (.0 entfernen)
+    oid_norm = oid.rstrip(".0")
 
-        # 🔥 2. Pattern Mapping
-        if "5.5" in oid:
-            return "Scan Counter"
-        if "5.1" in oid:
-            return "Roller Usage"
-        if "5.2" in oid:
-            return "Device Status"
-        if "54" in oid:
-            return "Scan Pages"
+    # 🔥 KNOWN OIDS MATCH (FIX!)
+    for known_oid, name in KNOWN_OIDS.items():
+        if oid_norm.startswith(known_oid):
+            return name
 
-        # 🔥 3. Value-based
-        if isinstance(value, str):
-            v = value.lower()
-            if "error" in v:
-                return "Error Status"
-            if "ready" in v:
-                return "Device Ready"
+    # =========================
+    # Pattern Mapping
+    # =========================
+    if "5.5" in oid:
+        return "Scan Counter"
 
-        # 🔥 4. Fallback
-        parts = oid.split(".")
-        return f"SNMP {parts[-2:]}"
+    if "5.1" in oid:
+        return "Roller Usage"
+
+    if "5.2" in oid:
+        return "Device Status"
+
+    if "54" in oid:
+        return "Scan Pages"
+
+    # =========================
+    # Value-based
+    # =========================
+    if isinstance(value, str):
+        v = value.lower()
+        if "error" in v:
+            return "Error Status"
+        if "ready" in v:
+            return "Device Ready"
+
+    # =========================
+    # Fallback
+    # =========================
+    parts = oid.split(".")
+    return f"SNMP {parts[-2:]}"
