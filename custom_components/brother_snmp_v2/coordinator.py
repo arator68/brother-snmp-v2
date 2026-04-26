@@ -77,24 +77,16 @@ class BrotherCoordinator(DataUpdateCoordinator):
             if value is None or value == "":
                 continue
 
-            # 🔥 relevante Bereiche
+            # 🔥 nur relevante OIDs
             if not any(x in oid for x in ["5.5", "5.1", "5.2", "54"]):
                 continue
 
-            # 🔥 nur Änderungen (Delta)
-            if oid in self._last_walk:
-                if self._last_walk[oid] == value:
-                    continue
+            # 🔥 KEIN Delta Filter (wichtig!)
+            filtered[oid] = self._convert(value)
 
-            # 🔧 konvertieren
-            val = self._convert(value)
-
-            # 🔍 DEBUG (optional aktivieren)
-            # _LOGGER.warning(f"{oid} → {val}")
-
-            filtered[oid] = val
-
+        # Cache optional behalten
         self._last_walk = walk
+
         return filtered
 
     # =========================
