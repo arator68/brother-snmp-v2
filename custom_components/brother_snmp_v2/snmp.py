@@ -1,12 +1,12 @@
 import asyncio
-from pysnmp.hlapi.v3arch.asyncio import (
+from pysnmp.hlapi.asyncio import (
     SnmpEngine,
     CommunityData,
     UdpTransportTarget,
     ContextData,
     ObjectType,
     ObjectIdentity,
-    get_cmd,
+    getCmd,
 )
 
 _ENGINE = SnmpEngine()
@@ -15,9 +15,9 @@ _ENGINE = SnmpEngine()
 async def snmp_get(host, community, oid):
     transport = await UdpTransportTarget.create((host, 161))
 
-    error_indication, error_status, _, var_binds = await get_cmd(
+    error_indication, error_status, _, var_binds = await getCmd(
         _ENGINE,
-        CommunityData(community, mpModel=1),
+        CommunityData(community),
         transport,
         ContextData(),
         ObjectType(ObjectIdentity(oid)),

@@ -3,7 +3,6 @@ import asyncio
 import re
 
 from homeassistant import config_entries
-
 from .snmp import snmp_get
 
 DOMAIN = "brother_snmp_v2"
@@ -26,7 +25,7 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             community = user_input[CONF_COMMUNITY]
 
             try:
-                # Verbindung testen
+                # Verbindung prüfen
                 sysdescr = await asyncio.wait_for(
                     snmp_get(host, community, TEST_OID), timeout=5
                 )
@@ -34,7 +33,7 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if sysdescr is None:
                     errors["base"] = "cannot_connect"
                 else:
-                    # Brother prüfen + Modell holen
+                    # Brother + Modell prüfen
                     model_raw = await asyncio.wait_for(
                         snmp_get(host, community, MODEL_OID), timeout=5
                     )
@@ -56,7 +55,6 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             except asyncio.TimeoutError:
                 errors["base"] = "timeout"
-
             except Exception:
                 errors["base"] = "unknown"
 
