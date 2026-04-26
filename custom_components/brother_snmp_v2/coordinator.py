@@ -1,14 +1,16 @@
 import logging
 import os
 from datetime import timedelta
-from .const import GOOD_SCANNER_OIDS
-from .const import GOOD_PRINTER_OIDS
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_bulk, snmp_walk
 from .mib_parser import load_mib
-from .const import SCANNER_BASE_OID, KNOWN_OIDS
+from .const import (
+    SCANNER_BASE_OID,
+    GOOD_SCANNER_OIDS,
+    GOOD_PRINTER_OIDS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,11 +30,13 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         self._last_walk = {}
 
-        # 🔥 MIB laden (nur Printer)
+        # =========================
+        # 🖨️ MIB laden (optional)
+        # =========================
         if device_class == "PRINTER":
             try:
                 base = os.path.dirname(__file__)
-                mib_path = os.path.join(base, "BROTHER-Printer-MIB.json")
+                mib_path = os.path.join(base, "BROTHER-MIB.json")
                 self.sensors = load_mib(mib_path)
                 _LOGGER.warning(f"MIB sensors loaded: {len(self.sensors)}")
             except Exception as e:
@@ -47,7 +51,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         data = {}
 
-         # =========================
+        # =========================
         # 🖨️ PRINTER
         # =========================
         if self.device_class == "PRINTER":
@@ -78,18 +82,22 @@ class BrotherCoordinator(DataUpdateCoordinator):
                     if oid_norm.startswith(good_oid):
                         data[name] = self._convert(value)
 
-
         # =========================
-        # 📄 SCANNER (WALK)
+        # 📄 SCANNER
         # =========================
         elif self.device_class == "SCANNER":
+
             walk = await snmp_walk(self.host, self.community, SCANNER_BASE_OID)
+
+            # 🔍 DEBUG
+            _LOGGER.warning(f"SCANNER WALK: {len(walk)} OIDs")
+
             data["walk"] = self._smart_filter(walk)
 
         return data
 
     # =========================
-    # 🔥 SMART FILTER (FIXED)
+    # 🔥 SCANNER FILTER
     # =========================
     def _smart_filter(self, walk):
         filtered = {}
@@ -101,7 +109,6 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
             oid_norm = oid.rstrip(".0")
 
-            # 🔥 NUR bekannte gute OIDs!
             for good_oid, name in GOOD_SCANNER_OIDS.items():
                 if oid_norm.startswith(good_oid):
                     filtered[oid] = self._convert(value)
@@ -109,7 +116,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
         return filtered
 
     # =========================
-    # 🔧 VALUE CONVERSION
+    # 🔧 VALUE CONVERT
     # =========================
     def _convert(self, value):
         if value is None:
@@ -121,7 +128,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
             return str(value)
 
     # =========================
-    # 🧠 CLEAN NAMING
+    # 🧠 NAMING (Scanner)
     # =========================
     def friendly_name(self, oid, value=None):
         oid_norm = oid.rstrip(".0")
@@ -130,4 +137,4 @@ class BrotherCoordinator(DataUpdateCoordinator):
             if oid_norm.startswith(good_oid):
                 return name
 
-        return None  # nichts anzeigen
+        return None
