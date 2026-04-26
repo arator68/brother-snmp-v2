@@ -31,7 +31,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
         if device_class == "PRINTER":
             try:
                 base = os.path.dirname(__file__)
-                mib_path = os.path.join(base, "BROTHER-MIB.json")
+                mib_path = os.path.join(base, "BROTHER-Printer-MIB.json")
                 self.sensors = load_mib(mib_path)
             except Exception as e:
                 _LOGGER.warning(f"MIB load failed: {e}")
