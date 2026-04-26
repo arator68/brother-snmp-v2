@@ -14,7 +14,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     sensors = []
 
     # =========================
-    # 🖨️ PRINTER (MIB)
+    # 🖨️ PRINTER
     # =========================
     if coordinator.device_class == "PRINTER":
         sensors.extend([
@@ -23,13 +23,20 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ])
 
     # =========================
-    # 📄 SCANNER (WALK)
+    # 📄 SCANNER (nur gute OIDs!)
     # =========================
     elif coordinator.device_class == "SCANNER":
         walk = coordinator.data.get("walk", {})
 
-        for oid in list(walk.keys())[:20]:  # limit für UI
-            sensors.append(BrotherWalkSensor(coordinator, oid))
+        for oid, value in walk.items():
+
+            name = coordinator.friendly_name(oid, value)
+
+            # ❌ ignorieren wenn kein sinnvoller Name
+            if not name:
+                continue
+
+            sensors.append(BrotherWalkSensor(coordinator, oid, name))
 
     async_add_entities(sensors)
 
@@ -62,8 +69,6 @@ class BrotherAutoSensor(CoordinatorEntity, SensorEntity):
             return "mdi:printer"
         if "page" in name:
             return "mdi:file-document"
-        if "error" in name:
-            return "mdi:alert"
         return "mdi:printer-outline"
 
     @property
@@ -75,33 +80,33 @@ class BrotherAutoSensor(CoordinatorEntity, SensorEntity):
 
 
 # =========================
-# 📄 SCANNER SENSOR
+# 📄 SCANNER SENSOR (CLEAN)
 # =========================
 class BrotherWalkSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, oid):
+    def __init__(self, coordinator, oid, name):
         super().__init__(coordinator)
         self._oid = oid
+        self._name = name
 
-    # 🔥 CLEAN NAME
+    # 🔥 sauberer Name (aus Whitelist)
     @property
     def name(self):
-        value = self.coordinator.data.get("walk", {}).get(self._oid)
-        return self.coordinator.friendly_name(self._oid, value)
+        return self._name
 
-    # 🔥 WICHTIG: eindeutig!
+    # 🔥 eindeutig
     @property
     def unique_id(self):
         return f"{self.coordinator.host}_{self._oid}"
 
-    # 🔥 STATE FIX (kein "Unbekannt" mehr)
+    # 🔥 stabiler State
     @property
     def state(self):
         return self.coordinator.data.get("walk", {}).get(self._oid)
 
-    # 🔥 ICONS (nice UI)
+    # 🔥 bessere Icons
     @property
     def icon(self):
-        name = self.name.lower()
+        name = self._name.lower()
 
         if "roller" in name:
             return "mdi:rotate-3d"
@@ -109,8 +114,6 @@ class BrotherWalkSensor(CoordinatorEntity, SensorEntity):
             return "mdi:scanner"
         if "status" in name:
             return "mdi:information"
-        if "error" in name:
-            return "mdi:alert"
         return "mdi:chip"
 
     @property

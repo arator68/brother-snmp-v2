@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import timedelta
+from .const import GOOD_SCANNER_OIDS
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -73,19 +74,15 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         for oid, value in walk.items():
 
-            # ❌ nur wirklich leere Werte ignorieren
             if value is None or value == "":
                 continue
 
-            # 🔥 nur relevante OIDs
-            if not any(x in oid for x in ["5.5", "5.1", "5.2", "54"]):
-                continue
+            oid_norm = oid.rstrip(".0")
 
-            # 🔥 KEIN Delta Filter (wichtig!)
-            filtered[oid] = self._convert(value)
-
-        # Cache optional behalten
-        self._last_walk = walk
+            # 🔥 NUR bekannte gute OIDs!
+            for good_oid, name in GOOD_SCANNER_OIDS.items():
+                if oid_norm.startswith(good_oid):
+                    filtered[oid] = self._convert(value)
 
         return filtered
 
@@ -105,29 +102,10 @@ class BrotherCoordinator(DataUpdateCoordinator):
     # 🧠 CLEAN NAMING
     # =========================
     def friendly_name(self, oid, value=None):
-
         oid_norm = oid.rstrip(".0")
 
-        # 🔥 Known OIDs
-        for known_oid, name in KNOWN_OIDS.items():
-            if oid_norm.startswith(known_oid):
+        for good_oid, name in GOOD_SCANNER_OIDS.items():
+            if oid_norm.startswith(good_oid):
                 return name
 
-        parts = oid.split(".")
-        suffix = ".".join(parts[-2:])  # letzte Zahlen
-
-        # 🔥 Pattern Mapping + eindeutiger Name
-        if "5.5" in oid:
-            return f"Scan Counter ({suffix})"
-
-        if "5.1" in oid:
-            return f"Roller Usage ({suffix})"
-
-        if "5.2" in oid:
-            return f"Device Status ({suffix})"
-
-        if "54" in oid:
-            return f"Scan Pages ({suffix})"
-
-        # 🔥 Fallback
-        return f"SNMP ({suffix})"
+        return None  # nichts anzeigen
