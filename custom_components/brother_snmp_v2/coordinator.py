@@ -5,7 +5,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_bulk, snmp_walk
 from .mib_parser import load_mib
-from .const import SCANNER_BASE_OID
+from .const import SCANNER_BASE_OID, KNOWN_OIDS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         if device_class == "PRINTER":
             self.sensors = load_mib(
-                "/config/custom_components/brother_snmp_v2/BROTHER-Printer-MIB.json"
+                "/config/custom_components/brother_snmp_v2/BROTHER-MIB.json"
             )
         else:
             self.sensors = []
@@ -34,98 +34,63 @@ class BrotherCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         data = {}
 
-        # =========================
         # 🖨️ PRINTER
-        # =========================
         if self.device_class == "PRINTER":
             oids = [s["oid"] for s in self.sensors]
-
             raw = await snmp_bulk(self.host, self.community, oids)
 
             for s in self.sensors:
-                val = raw.get(s["oid"])
-                data[s["key"]] = self._map_value(s["key"], val)
+                data[s["key"]] = raw.get(s["oid"])
 
-        # =========================
-        # 📄 SCANNER (SMART WALK)
-        # =========================
+        # 📄 SCANNER
         elif self.device_class == "SCANNER":
             walk = await snmp_walk(self.host, self.community, SCANNER_BASE_OID)
             data["walk"] = self._smart_filter(walk)
 
         return data
 
-    # =========================
-    # 🧠 SMART FILTER
-    # =========================
+    # 🔥 SMART FILTER
     def _smart_filter(self, walk):
         filtered = {}
 
         for oid, value in walk.items():
-
-            # ❌ Müll raus
             if value in (None, "", "0"):
                 continue
 
-            if isinstance(value, str) and len(value) < 2:
+            if not any(x in oid for x in ["5.5", "5.1", "5.2", "54"]):
                 continue
 
-            # 🔥 relevante OIDs
-            if not any(x in oid for x in [
-                "5.5",  # counters
-                "5.1",  # roller
-                "5.2",  # status
-                "54",   # scan
-            ]):
+            if oid in self._last_walk and self._last_walk[oid] == value:
                 continue
-
-            # 🔥 nur Änderungen
-            if oid in self._last_walk:
-                if self._last_walk[oid] == value:
-                    continue
 
             filtered[oid] = value
 
         self._last_walk = walk
         return filtered
 
-    # =========================
-    # 🧠 VALUE MAPPING
-    # =========================
-    def _map_value(self, key, value):
-        if value is None:
-            return None
+    # 🔥 CLEAN NAMING
+    def friendly_name(self, oid, value=None):
 
-        if "toner" in key:
-            return {
-                "0": "OK",
-                "1": "LOW",
-                "2": "MISSING",
-                "3": "EMPTY",
-            }.get(value, value)
+        # 1. Known OIDs
+        if oid in KNOWN_OIDS:
+            return KNOWN_OIDS[oid]
 
-        if "jam" in key:
-            return {
-                "0": "OK",
-                "1": "TRAY",
-                "2": "INSIDE",
-                "3": "REAR",
-                "4": "DUPLEX",
-            }.get(value, value)
-
-        return value
-
-    # =========================
-    # 🧠 FRIENDLY NAMES
-    # =========================
-    def friendly_name(self, oid):
+        # 2. Pattern Mapping
         if "5.5" in oid:
-            return "Counter"
-        if "5.1" in oid:
-            return "Roller"
-        if "5.2" in oid:
-            return "Status"
-        if "54" in oid:
             return "Scan Counter"
+        if "5.1" in oid:
+            return "Roller Usage"
+        if "5.2" in oid:
+            return "Device Status"
+        if "54" in oid:
+            return "Scan Pages"
 
-        return oid
+        # 3. Value based
+        if isinstance(value, str):
+            if "error" in value.lower():
+                return "Error Status"
+            if "ready" in value.lower():
+                return "Device Ready"
+
+        # 4. fallback
+        return f"SNMP {oid.split('.')[-3:]}"

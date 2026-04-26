@@ -4,7 +4,6 @@ CONF_HOST = "host"
 CONF_COMMUNITY = "community"
 
 IDENTITY_OID = "1.3.6.1.4.1.2435.2.3.9.1.1.7.0"
-
 SCANNER_BASE_OID = "1.3.6.1.4.1.2435.2.3.9"
 
 IMPORTANT_KEYWORDS = [
@@ -14,3 +13,11 @@ IMPORTANT_KEYWORDS = [
     "page",
     "status",
 ]
+
+# 🔥 KNOWN OIDS (beste Qualität)
+KNOWN_OIDS = {
+    "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.18": "Pickup Roller",
+    "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.19": "Separation Roller",
+    "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.20": "Feed Roller",
+    "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.54.2.2.1.3.3": "Scan Pages",
+}

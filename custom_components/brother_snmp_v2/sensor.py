@@ -21,7 +21,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     elif coordinator.device_class == "SCANNER":
         walk = coordinator.data.get("walk", {})
 
-        for oid in list(walk.keys())[:20]:  # limit!
+        for oid in list(walk.keys())[:20]:
             sensors.append(BrotherWalkSensor(coordinator, oid))
 
     async_add_entities(sensors)
@@ -59,7 +59,8 @@ class BrotherWalkSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def name(self):
-        return self.coordinator.friendly_name(self._oid)
+        value = self.coordinator.data["walk"].get(self._oid)
+        return self.coordinator.friendly_name(self._oid, value)
 
     @property
     def unique_id(self):
@@ -68,3 +69,10 @@ class BrotherWalkSensor(CoordinatorEntity, SensorEntity):
     @property
     def state(self):
         return self.coordinator.data["walk"].get(self._oid)
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.host)},
+            manufacturer="Brother",
+        )
