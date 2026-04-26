@@ -1,7 +1,7 @@
 {
   "domain": "brother_snmp_v2",
   "name": "Brother SNMP Scanner",
-  "version": "1.4.15",
+  "version": "1.4.16",
   "integration_type": "device",
   "config_flow": true,
   "documentation": "https://github.com/arator68/brother-snmp-v2",
