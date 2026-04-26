@@ -14,6 +14,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass,
         entry.data["host"],
         entry.data["community"],
+        entry.data.get("device_class"),
     )
 
     await coordinator.async_config_entry_first_refresh()

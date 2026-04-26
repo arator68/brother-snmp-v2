@@ -2,13 +2,13 @@ from .snmp import snmp_get
 from .const import IDENTITY_OID
 
 
-def parse_identity(raw: str) -> dict:
-    result = {}
+def parse_identity(raw: str):
+    data = {}
     for part in raw.split(";"):
         if ":" in part:
             k, v = part.split(":", 1)
-            result[k] = v
-    return result
+            data[k] = v
+    return data
 
 
 async def detect_device(host, community):
@@ -24,5 +24,5 @@ async def detect_device(host, community):
 
     return {
         "model": data.get("MDL"),
-        "class": data.get("CLS"),
+        "device_class": data.get("CLS"),
     }

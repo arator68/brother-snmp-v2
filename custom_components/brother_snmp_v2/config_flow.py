@@ -31,7 +31,11 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                     return self.async_create_entry(
                         title=f"{device['model']} ({user_input[CONF_HOST]})",
-                        data=user_input,
+                        data={
+                            **user_input,
+                            "device_class": device["device_class"],
+                            "model": device["model"],
+                        },
                     )
 
             except asyncio.TimeoutError:

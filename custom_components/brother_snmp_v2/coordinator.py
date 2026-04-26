@@ -4,13 +4,13 @@ from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_bulk
-from .const import PAGE_OID, ROLLER_OID
+from .const import DEVICE_PROFILES
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class BrotherCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, host, community):
+    def __init__(self, hass, host, community, device_class):
         super().__init__(
             hass,
             _LOGGER,
@@ -19,15 +19,18 @@ class BrotherCoordinator(DataUpdateCoordinator):
         )
         self.host = host
         self.community = community
+        self.device_class = device_class
+
+        self.profile = DEVICE_PROFILES.get(device_class, DEVICE_PROFILES["DEFAULT"])
 
     async def _async_update_data(self):
-        data = await snmp_bulk(
-            self.host,
-            self.community,
-            [PAGE_OID, ROLLER_OID],
-        )
+        oids = [s["oid"] for s in self.profile["sensors"]]
 
-        return {
-            "pages": int(data.get(PAGE_OID)) if data.get(PAGE_OID) else None,
-            "roller": int(data.get(ROLLER_OID)) if data.get(ROLLER_OID) else None,
-        }
+        raw = await snmp_bulk(self.host, self.community, oids)
+
+        data = {}
+        for sensor in self.profile["sensors"]:
+            val = raw.get(sensor["oid"])
+            data[sensor["key"]] = int(val) if val and val.isdigit() else val
+
+        return data
