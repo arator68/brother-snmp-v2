@@ -1,4 +1,5 @@
 from .coordinator import BrotherCoordinator
+from .const import DOMAIN
 
 async def async_setup_entry(hass, entry):
     coordinator = BrotherCoordinator(
