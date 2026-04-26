@@ -1,25 +1,28 @@
 import asyncio
 import logging
 
-from pysnmp.hlapi.asyncio import (
+from pysnmp.hlapi.v3arch.asyncio import (
     SnmpEngine,
     CommunityData,
     UdpTransportTarget,
     ContextData,
     ObjectType,
     ObjectIdentity,
-    getCmd,
+    get_cmd,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# global SNMP engine (performance + reuse)
 _ENGINE = SnmpEngine()
 
 
-async def snmp_get(host, community, oid):
+async def snmp_get(host: str, community: str, oid: str) -> str | None:
+    """Async SNMP GET (pysnmp v7 compatible)."""
     try:
-        transport = UdpTransportTarget((host, 161))
+        transport = await UdpTransportTarget.create((host, 161))
 
-        error_indication, error_status, _, var_binds = await getCmd(
+        error_indication, error_status, _, var_binds = await get_cmd(
             _ENGINE,
             CommunityData(community),
             transport,
@@ -27,17 +30,37 @@ async def snmp_get(host, community, oid):
             ObjectType(ObjectIdentity(oid)),
         )
 
-        if error_indication or error_status:
+        if error_indication:
+            _LOGGER.debug("SNMP error (%s): %s", host, error_indication)
+            return None
+
+        if error_status:
+            _LOGGER.debug("SNMP status error (%s): %s", host, error_status)
             return None
 
         return str(var_binds[0][1]) if var_binds else None
 
     except Exception as err:
-        _LOGGER.error("SNMP error: %s", err)
+        _LOGGER.error("SNMP exception (%s): %s", host, err)
         return None
 
 
-async def snmp_bulk(host, community, oids):
-    tasks = [snmp_get(host, community, oid) for oid in oids]
-    results = await asyncio.gather(*tasks)
-    return dict(zip(oids, results))
+async def snmp_bulk(host: str, community: str, oids: list[str]) -> dict[str, str | None]:
+    """Parallel SNMP GET for multiple OIDs."""
+    try:
+        tasks = [snmp_get(host, community, oid) for oid in oids]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        output = {}
+        for oid, result in zip(oids, results):
+            if isinstance(result, Exception):
+                _LOGGER.debug("SNMP bulk error (%s): %s", host, result)
+                output[oid] = None
+            else:
+                output[oid] = result
+
+        return output
+
+    except Exception as err:
+        _LOGGER.error("SNMP bulk failed (%s): %s", host, err)
+        return {oid: None for oid in oids}
