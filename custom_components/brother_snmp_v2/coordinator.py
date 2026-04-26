@@ -26,7 +26,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         if device_class == "PRINTER":
             self.sensors = load_mib(
-                "/config/custom_components/brother_snmp_v2/BROTHER-MIB.json"
+                "/config/custom_components/brother_snmp_v2/BROTHER-Printer-MIB.json"
             )
         else:
             self.sensors = []
