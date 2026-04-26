@@ -1,5 +1,6 @@
 import voluptuous as vol
 import asyncio
+import re
 
 from homeassistant import config_entries
 
@@ -10,8 +11,8 @@ DOMAIN = "brother_snmp_v2"
 CONF_HOST = "host"
 CONF_COMMUNITY = "community"
 
-TEST_OID = "1.3.6.1.2.1.1.1.0"  # sysDescr
-BROTHER_TEST_OID = "1.3.6.1.4.1.2435.2.4.3.99.3.1.6.1.2.1"  # MODEL
+TEST_OID = "1.3.6.1.2.1.1.1.0"
+MODEL_OID = "1.3.6.1.4.1.2435.2.4.3.99.3.1.6.1.2.1"
 
 
 class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -25,27 +26,32 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             community = user_input[CONF_COMMUNITY]
 
             try:
-                # 🔹 1. Gerät erreichbar?
+                # Verbindung testen
                 sysdescr = await asyncio.wait_for(
-                    snmp_get(host, community, TEST_OID),
-                    timeout=5
+                    snmp_get(host, community, TEST_OID), timeout=5
                 )
 
                 if sysdescr is None:
                     errors["base"] = "cannot_connect"
                 else:
-                    # 🔹 2. Ist es ein Brother?
-                    brother_check = await asyncio.wait_for(
-                        snmp_get(host, community, BROTHER_TEST_OID),
-                        timeout=5
+                    # Brother prüfen + Modell holen
+                    model_raw = await asyncio.wait_for(
+                        snmp_get(host, community, MODEL_OID), timeout=5
                     )
 
-                    if brother_check is None:
+                    if model_raw is None:
                         errors["base"] = "not_brother"
                     else:
+                        match = re.search(r'"(.+)"', model_raw)
+                        model = match.group(1) if match else model_raw
+
                         return self.async_create_entry(
-                            title=f"Brother ({host})",
-                            data=user_input,
+                            title=f"{model} ({host})",
+                            data={
+                                CONF_HOST: host,
+                                CONF_COMMUNITY: community,
+                                "model": model,
+                            },
                         )
 
             except asyncio.TimeoutError:

@@ -1,9 +1,9 @@
 {
   "config": {
     "error": {
-      "cannot_connect": "Keine Verbindung zum Gerät möglich",
-      "timeout": "Gerät antwortet nicht (Timeout)",
-      "not_brother": "Kein Brother Scanner erkannt",
+      "cannot_connect": "Keine Verbindung möglich",
+      "timeout": "Timeout beim Gerät",
+      "not_brother": "Kein Brother Gerät erkannt",
       "unknown": "Unbekannter Fehler"
     }
   }

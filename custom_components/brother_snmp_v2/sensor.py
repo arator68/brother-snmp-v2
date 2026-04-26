@@ -26,8 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ])
 
 
-# 🔧 Basis-Klasse für alle Sensoren
-class BrotherBaseSensor(CoordinatorEntity, SensorEntity):
+class Base(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, host):
         super().__init__(coordinator)
         self._host = host
@@ -36,73 +35,59 @@ class BrotherBaseSensor(CoordinatorEntity, SensorEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self._host)},
-            name=self.coordinator.data.get("model") or "Brother Scanner",
+            name=self.coordinator.data.get("model"),
             manufacturer="Brother",
             model=self.coordinator.data.get("model"),
             sw_version=self.coordinator.data.get("firmware"),
             serial_number=self.coordinator.data.get("serial"),
         )
 
-    @property
-    def available(self):
-        return self.coordinator.data.get("online", False)
 
-
-# 📄 Seitenzähler
-class BrotherPagesSensor(BrotherBaseSensor):
-    def __init__(self, coordinator, host):
-        super().__init__(coordinator, host)
-        self._attr_name = "Seiten gesamt"
-        self._attr_unique_id = f"{host}_pages_total"
-        self._attr_state_class = "total_increasing"
+class BrotherPagesSensor(Base):
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Seiten gesamt"
 
     @property
     def state(self):
         return self.coordinator.data.get("pages_total")
 
 
-# 🏷️ Modell
-class BrotherModelSensor(BrotherBaseSensor):
-    def __init__(self, coordinator, host):
-        super().__init__(coordinator, host)
-        self._attr_name = "Modell"
-        self._attr_unique_id = f"{host}_model"
+class BrotherModelSensor(Base):
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Modell"
 
     @property
     def state(self):
         return self.coordinator.data.get("model")
 
 
-# 🔢 Seriennummer
-class BrotherSerialSensor(BrotherBaseSensor):
-    def __init__(self, coordinator, host):
-        super().__init__(coordinator, host)
-        self._attr_name = "Seriennummer"
-        self._attr_unique_id = f"{host}_serial"
+class BrotherSerialSensor(Base):
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Seriennummer"
 
     @property
     def state(self):
         return self.coordinator.data.get("serial")
 
 
-# 🔧 Firmware
-class BrotherFirmwareSensor(BrotherBaseSensor):
-    def __init__(self, coordinator, host):
-        super().__init__(coordinator, host)
-        self._attr_name = "Firmware"
-        self._attr_unique_id = f"{host}_firmware"
+class BrotherFirmwareSensor(Base):
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Firmware"
 
     @property
     def state(self):
         return self.coordinator.data.get("firmware")
 
-class BrotherRollerSensor(BrotherBaseSensor):
-    def __init__(self, coordinator, host):
-        super().__init__(coordinator, host)
-        self._attr_name = "Roller Zähler"
-        self._attr_unique_id = f"{host}_roller_count"
-        self._attr_state_class = "total_increasing"
+
+class BrotherRollerSensor(Base):
+    def __init__(self, c, h):
+        super().__init__(c, h)
+        self._attr_name = "Brother Roller Zähler"
 
     @property
     def state(self):
-        return self.coordinator.data.get("roller_count")
+        return self.coordinator.data.get("roller")
