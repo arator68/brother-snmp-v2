@@ -1,5 +1,15 @@
 {
   "config": {
+    "step": {
+      "user": {
+        "title": "Brother Scanner",
+        "description": "Enter connection details",
+        "data": {
+          "host": "IP address",
+          "community": "SNMP community"
+        }
+      }
+    },
     "error": {
       "cannot_connect": "Cannot connect",
       "timeout": "Timeout",

@@ -5,7 +5,7 @@ import re
 from homeassistant import config_entries
 
 from .snmp import snmp_get
-from .const import DOMAIN, CONF_HOST, CONF_COMMUNITY, MODEL_OID
+from .const import DOMAIN, CONF_HOST, CONF_COMMUNITY, MODEL_OID, SERIAL_OID
 
 TEST_OID = "1.3.6.1.2.1.1.1.0"
 
@@ -34,6 +34,9 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         model_raw = await asyncio.wait_for(
                             snmp_get(host, community, MODEL_OID), timeout=5
                         )
+                        serial = await asyncio.wait_for(
+                            snmp_get(host, community, SERIAL_OID), timeout=5
+                        )
 
                         if model_raw is None:
                             errors["base"] = "not_brother"
@@ -41,12 +44,16 @@ class BrotherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             match = re.search(r'"(.+)"', model_raw)
                             model = match.group(1) if match else model_raw
 
+                            await self.async_set_unique_id(serial or host)
+                            self._abort_if_unique_id_configured()
+
                             return self.async_create_entry(
                                 title=f"{model} ({host})",
                                 data={
                                     CONF_HOST: host,
                                     CONF_COMMUNITY: community,
                                     "model": model,
+                                    "serial": serial,
                                 },
                             )
 

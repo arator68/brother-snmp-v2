@@ -27,18 +27,13 @@ async def snmp_get(host, community, oid):
             ObjectType(ObjectIdentity(oid)),
         )
 
-        if error_indication:
-            _LOGGER.debug("SNMP error: %s", error_indication)
-            return None
-
-        if error_status:
-            _LOGGER.debug("SNMP status error: %s", error_status)
+        if error_indication or error_status:
             return None
 
         return str(var_binds[0][1]) if var_binds else None
 
     except Exception as err:
-        _LOGGER.error("SNMP exception: %s", err)
+        _LOGGER.error("SNMP error: %s", err)
         return None
 
 

@@ -9,6 +9,13 @@
           "community": "SNMP community"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect",
+      "timeout": "Timeout",
+      "not_brother": "Not a Brother device",
+      "unknown": "Unknown error",
+      "invalid_host": "Invalid host"
     }
   }
 }
