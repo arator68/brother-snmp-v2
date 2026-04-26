@@ -1,15 +1,19 @@
+import logging
 from datetime import timedelta
+
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_bulk
 from .const import PAGE_OID, ROLLER_OID
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class BrotherCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, host, community):
         super().__init__(
             hass,
-            logger=None,
+            _LOGGER,
             name="Brother SNMP",
             update_interval=timedelta(seconds=15),
         )
