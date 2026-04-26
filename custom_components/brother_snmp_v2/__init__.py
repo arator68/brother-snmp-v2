@@ -1,7 +1,7 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-DOMAIN = "brother_snmp_v2"
+from .const import DOMAIN
 
 async def async_setup(hass: HomeAssistant, config: dict):
     return True

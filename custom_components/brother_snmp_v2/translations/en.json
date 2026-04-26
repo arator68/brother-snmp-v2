@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Brother Scanner",
+        "description": "Enter connection details"
+      }
+    }
+  }
+}

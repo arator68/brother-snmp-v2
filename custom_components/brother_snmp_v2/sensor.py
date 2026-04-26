@@ -3,7 +3,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
 from .coordinator import BrotherCoordinator
-from . import DOMAIN
+from .const import DOMAIN
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -44,9 +44,7 @@ class Base(CoordinatorEntity, SensorEntity):
 
 
 class BrotherPagesSensor(Base):
-    def __init__(self, c, h):
-        super().__init__(c, h)
-        self._attr_name = "Brother Seiten gesamt"
+    _attr_name = "Brother Seiten gesamt"
 
     @property
     def state(self):
@@ -54,9 +52,7 @@ class BrotherPagesSensor(Base):
 
 
 class BrotherModelSensor(Base):
-    def __init__(self, c, h):
-        super().__init__(c, h)
-        self._attr_name = "Brother Modell"
+    _attr_name = "Brother Modell"
 
     @property
     def state(self):
@@ -64,9 +60,7 @@ class BrotherModelSensor(Base):
 
 
 class BrotherSerialSensor(Base):
-    def __init__(self, c, h):
-        super().__init__(c, h)
-        self._attr_name = "Brother Seriennummer"
+    _attr_name = "Brother Seriennummer"
 
     @property
     def state(self):
@@ -74,9 +68,7 @@ class BrotherSerialSensor(Base):
 
 
 class BrotherFirmwareSensor(Base):
-    def __init__(self, c, h):
-        super().__init__(c, h)
-        self._attr_name = "Brother Firmware"
+    _attr_name = "Brother Firmware"
 
     @property
     def state(self):
@@ -84,9 +76,7 @@ class BrotherFirmwareSensor(Base):
 
 
 class BrotherRollerSensor(Base):
-    def __init__(self, c, h):
-        super().__init__(c, h)
-        self._attr_name = "Brother Roller Zähler"
+    _attr_name = "Brother Roller Zähler"
 
     @property
     def state(self):

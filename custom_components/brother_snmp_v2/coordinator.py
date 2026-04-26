@@ -3,22 +3,21 @@ import logging
 import re
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .snmp import snmp_bulk
+from .const import *
 
 _LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(seconds=15)
-
-PAGE_OID = "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.54.2.2.1.3.3"
-MODEL_OID = "1.3.6.1.4.1.2435.2.4.3.99.3.1.6.1.2.1"
-SERIAL_OID = "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.1.0"
-FIRMWARE_OID = "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.17.0"
-ROLLER_OID = "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.18"
 
 
 class BrotherCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, host, community):
-        super().__init__(hass, _LOGGER, name="Brother SNMP", update_interval=SCAN_INTERVAL)
+        super().__init__(
+            hass,
+            _LOGGER,
+            name="Brother SNMP",
+            update_interval=timedelta(seconds=15),
+        )
         self.host = host
         self.community = community
 
