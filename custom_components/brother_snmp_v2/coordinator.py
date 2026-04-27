@@ -56,19 +56,20 @@ class BrotherCoordinator(DataUpdateCoordinator):
         # =========================
         if self.device_class == "PRINTER":
 
-            # 🔥 FALLBACK wenn MIB leer ist
-            if not self.sensors:
-                oids = [
-                    "1.3.6.1.2.1.43.10.2.1.4.1.1",  # Printed Pages
-                    "1.3.6.1.2.1.25.3.2.1.3.1",     # Device Name
-                ]
-            else:
-                oids = [s["oid"] for s in self.sensors]
+            # 🔥 immer diese Basis-OIDs
+            base_oids = [
+                "1.3.6.1.2.1.43.10.2.1.4.1.1",  # pages
+                "1.3.6.1.2.1.25.3.2.1.3.1",     # name
+            ]
+
+            # 🔥 plus deine erweiterten
+            oids = base_oids + list(GOOD_PRINTER_OIDS.keys())
 
             raw = await snmp_bulk(self.host, self.community, oids)
 
-            # 🔍 DEBUG
             _LOGGER.warning(f"PRINTER RAW: {raw}")
+
+            data = {}
 
             for oid, value in raw.items():
 
@@ -77,10 +78,21 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
                 oid_norm = oid.rstrip(".0")
 
-                # 🔥 Whitelist
+                # 🔥 STANDARD OIDs (immer nehmen!)
+                if oid.startswith("1.3.6.1.2.1.43.10"):
+                    data["Printed Pages"] = self._convert(value)
+                    continue
+
+                if oid.startswith("1.3.6.1.2.1.25.3"):
+                    data["Device Name"] = value
+                    continue
+
+                # 🔥 OPTIONAL OIDs (nur wenn Daten da sind)
                 for good_oid, name in GOOD_PRINTER_OIDS.items():
                     if oid_norm.startswith(good_oid):
                         data[name] = self._convert(value)
+
+            return data
 
         # =========================
         # 📄 SCANNER
