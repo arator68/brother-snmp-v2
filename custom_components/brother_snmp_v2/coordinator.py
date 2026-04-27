@@ -64,8 +64,8 @@ class BrotherCoordinator(DataUpdateCoordinator):
             # MODEL
             if "CLS:" in value_str:
                 device_class = _extract_class(value_str)
-                if cls:
-                    self.cls = cls
+                if device_class:
+                    self.cls = device_class
 
             data[oid] = value
 
