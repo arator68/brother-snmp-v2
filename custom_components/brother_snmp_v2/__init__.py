@@ -26,12 +26,10 @@ async def async_setup_entry(hass, entry):
 
 @property
 def device_info(self):
-    base = self.coordinator.serial_number or self.coordinator.host
-
     return DeviceInfo(
-        identifiers={(DOMAIN, base)},
+        identifiers={(DOMAIN, self.coordinator.serial_number)},
         name=self.coordinator.model or "Brother Device",
         manufacturer="Brother",
         model=self.coordinator.model,
-        serial_number=self.coordinator.serial_number,  # kann None sein!
+        serial_number=self.coordinator.serial_number,  # 🔥 DAS HIER IST DER FIX
     )
