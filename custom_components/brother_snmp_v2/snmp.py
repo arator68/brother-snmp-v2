@@ -19,6 +19,9 @@ from pysnmp.hlapi.v3arch.asyncio import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# global SNMP engine (performance + reuse)
+_ENGINE = SnmpEngine()
+
 
 def _walk(host, community, base_oid):
     result = {}
