@@ -1,62 +1,66 @@
 import logging
+import re
 from datetime import timedelta
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_walk
-from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
-from .const import SCANNER_BASE_OID, GOOD_SCANNER_OIDS
+from .const import SCANNER_BASE_OID
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def _extract_serial(value):
+    match = re.search(r'SERIAL="([^"]+)"', value)
+    return match.group(1) if match else None
+
+
+def _extract_model(value):
+    match = re.search(r'MDL:([^;]+)', value)
+    return match.group(1) if match else None
+
+
 class BrotherCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, host, community, device_class):
+    def __init__(self, hass, host, community):
         super().__init__(
             hass,
             _LOGGER,
-            name="Brother SNMP Scanner",
-            update_interval=timedelta(seconds=15),
+            name="Brother SNMP",
+            update_interval=timedelta(seconds=30),
         )
 
         self.host = host
         self.community = community
-        
-        # 🔥 PERFORMANCE ENGINE
-        self.engine = SnmpEngine()
+
+        # 🔥 Multi-device
+        self.serial_number = None
+        self.model = None
 
     async def _async_update_data(self):
-        walk = await snmp_walk(self.engine, self.host, self.community, SCANNER_BASE_OID)
+        data = {}
 
-        return {"walk": self._smart_filter(walk)}
-
-    def _smart_filter(self, walk):
-        filtered = {}
+        walk = await snmp_walk(
+            self.engine,
+            self.host,
+            self.community,
+            SCANNER_BASE_OID,
+        )
 
         for oid, value in walk.items():
+            value_str = str(value)
 
-            if value is None or value == "":
-                continue
+            # SERIAL
+            if "SERIAL=" in value_str:
+                serial = _extract_serial(value_str)
+                if serial:
+                    self.serial_number = serial
 
-            oid_norm = oid.rstrip(".0")
+            # MODEL
+            if "MDL:" in value_str:
+                model = _extract_model(value_str)
+                if model:
+                    self.model = model
 
-            for good_oid, name in GOOD_SCANNER_OIDS.items():
-                if oid_norm.startswith(good_oid):
-                    filtered[oid] = self._convert(value)
+            data[oid] = value
 
-        return filtered
-
-    def _convert(self, value):
-        try:
-            return int(value)
-        except (ValueError, TypeError):
-            return str(value)
-
-    def friendly_name(self, oid):
-        oid_norm = oid.rstrip(".0")
-
-        for good_oid, name in GOOD_SCANNER_OIDS.items():
-            if oid_norm.startswith(good_oid):
-                return name
-
-        return None
+        return {"walk": data}

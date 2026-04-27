@@ -1,5 +1,7 @@
-from .coordinator import BrotherCoordinator
+from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
+
 from .const import DOMAIN
+from .coordinator import BrotherCoordinator
 
 
 async def async_setup_entry(hass, entry):
@@ -7,8 +9,10 @@ async def async_setup_entry(hass, entry):
         hass,
         entry.data["host"],
         entry.data["community"],
-        "SCANNER",
     )
+
+    # 🔥 shared engine (performance!)
+    coordinator.engine = SnmpEngine()
 
     await coordinator.async_config_entry_first_refresh()
 

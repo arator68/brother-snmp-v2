@@ -10,50 +10,38 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     sensors = []
 
-    walk = coordinator.data.get("walk", {})
-
-    for oid, value in walk.items():
-        name = coordinator.friendly_name(oid)
-
-        if not name:
-            continue
-
-        sensors.append(BrotherScannerSensor(coordinator, oid, name))
+    for oid, value in coordinator.data.get("walk", {}).items():
+        sensors.append(BrotherSensor(coordinator, oid))
 
     async_add_entities(sensors)
 
 
-class BrotherScannerSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, oid, name):
+class BrotherSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator, oid):
         super().__init__(coordinator)
         self._oid = oid
-        self._name = name
 
     @property
     def name(self):
-        return self._name
+        return self._oid
 
     @property
     def unique_id(self):
-        return f"{self.coordinator.host}_{self._oid}"
+        base = self.coordinator.serial_number or self.coordinator.host
+        return f"{base}_{self._oid}"
 
     @property
     def state(self):
         return self.coordinator.data.get("walk", {}).get(self._oid)
 
     @property
-    def icon(self):
-        name = self._name.lower()
-
-        if "roller" in name:
-            return "mdi:rotate-3d"
-        if "scan" in name:
-            return "mdi:scanner"
-        return "mdi:chip"
-
-    @property
     def device_info(self):
+        base = self.coordinator.serial_number or self.coordinator.host
+
         return DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.host)},
+            identifiers={(DOMAIN, base)},
+            name=self.coordinator.model or "Brother Device",
             manufacturer="Brother",
+            model=self.coordinator.model,
+            serial_number=self.coordinator.serial_number,
         )
