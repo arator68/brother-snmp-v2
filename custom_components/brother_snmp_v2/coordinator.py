@@ -51,10 +51,10 @@ class BrotherCoordinator(DataUpdateCoordinator):
             value_str = str(value)
 
             # SERIAL
-            if "SERIAL=" in value_str:
-                serial = _extract_serial(value_str)
-                if serial:
-                    self.serial_number = serial
+            # if "SERIAL=" in value_str:
+            #    serial = _extract_serial(value_str)
+            #    if serial:
+            #        self.serial_number = serial
 
             # MODEL
             if "MDL:" in value_str:
