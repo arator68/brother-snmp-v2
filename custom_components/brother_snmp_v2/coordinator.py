@@ -4,6 +4,7 @@ from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_walk
+from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
 from .const import SCANNER_BASE_OID, GOOD_SCANNER_OIDS
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,9 +21,12 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         self.host = host
         self.community = community
+        
+        # 🔥 PERFORMANCE ENGINE
+        self.engine = SnmpEngine()
 
     async def _async_update_data(self):
-        walk = await snmp_walk(self.host, self.community, SCANNER_BASE_OID)
+        walk = await snmp_walk(self.engine, self.host, self.community, SCANNER_BASE_OID)
 
         return {"walk": self._smart_filter(walk)}
 

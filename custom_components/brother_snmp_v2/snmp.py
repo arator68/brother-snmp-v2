@@ -1,10 +1,5 @@
+import asyncio
 import logging
-from datetime import timedelta
-
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util import dt as dt_util
-
-from pysnmp.hlapi import *
 
 from pysnmp.hlapi.v3arch.asyncio import (
     SnmpEngine,
@@ -19,38 +14,50 @@ from pysnmp.hlapi.v3arch.asyncio import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# global SNMP engine (performance + reuse)
-_ENGINE = SnmpEngine()
-
-
-def _walk(host, community, base_oid):
-    result = {}
-
-    for (errorIndication,
-         errorStatus,
-         errorIndex,
-         varBinds) in nextCmd(
-        SnmpEngine(),
-        CommunityData(community),
-        UdpTransportTarget((host, 161)),
-        ContextData(),
-        ObjectType(ObjectIdentity(base_oid)),
-        lexicographicMode=False,
-    ):
-
-        if errorIndication or errorStatus:
-            return {}
-
-        for varBind in varBinds:
-            oid, value = varBind
-            result[str(oid)] = str(value)
-
-    return result
 
 # =========================
-# WALK 🔥 (FEHLT BEI DIR)
+# GET
 # =========================
-async def snmp_walk(host, community, base_oid):
+async def snmp_get(engine, host, community, oid):
+    try:
+        transport = await UdpTransportTarget.create((host, 161))
+
+        error_indication, error_status, _, var_binds = await get_cmd(
+            engine,
+            CommunityData(community),
+            transport,
+            ContextData(),
+            ObjectType(ObjectIdentity(oid)),
+        )
+
+        if error_indication or error_status:
+            return None
+
+        return str(var_binds[0][1]) if var_binds else None
+
+    except Exception as err:
+        _LOGGER.error("SNMP GET error: %s", err)
+        return None
+
+
+# =========================
+# BULK
+# =========================
+async def snmp_bulk(engine, host, community, oids):
+    tasks = [snmp_get(engine, host, community, oid) for oid in oids]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    output = {}
+    for oid, result in zip(oids, results):
+        output[oid] = None if isinstance(result, Exception) else result
+
+    return output
+
+
+# =========================
+# WALK
+# =========================
+async def snmp_walk(engine, host, community, base_oid):
     results = {}
 
     try:
@@ -62,7 +69,7 @@ async def snmp_walk(host, community, base_oid):
             _,
             var_binds,
         ) in walk_cmd(
-            SnmpEngine(),
+            engine,
             CommunityData(community),
             transport,
             ContextData(),
@@ -79,26 +86,3 @@ async def snmp_walk(host, community, base_oid):
         _LOGGER.error("SNMP WALK error: %s", err)
 
     return results
-
-
-class BrotherCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, host, community):
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="Brother SNMP Scanner",
-            update_interval=timedelta(seconds=15),
-        )
-
-        self.host = host
-        self.community = community
-
-    async def _async_update_data(self):
-        walk = await self.hass.async_add_executor_job(
-            _walk,
-            self.host,
-            self.community,
-            "1.3.6.1.4.1.2435.2.3.9"
-        )
-
-        return {"walk": walk}
