@@ -71,5 +71,4 @@ class BrotherCoordinator(DataUpdateCoordinator):
             if oid.startswith(base):
                 return name
         
-        print("UNKNOWN OID:", oid)  # 🔥 DEBUG
         return None
