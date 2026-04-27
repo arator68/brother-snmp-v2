@@ -24,8 +24,46 @@ def _extract_model(value):
 
 
 def _extract_class(value):
-    match = re.search(r"CLS:([^;]+)", value)
-    return match.group(1).lower() if match else None
+    try:
+        return value.split("CLS:")[1].split(";")[0].strip().lower()
+    except Exception:
+        return None
+
+def parse_device_info(value: str) -> dict:
+    """Parse Brother SNMP device info string."""
+
+    if not value:
+        return {}
+
+    result = {}
+
+    try:
+        parts = value.split(";")
+
+        for part in parts:
+            if ":" not in part:
+                continue
+
+            key, val = part.split(":", 1)
+
+            key = key.strip().upper()
+            val = val.strip()
+
+            if key == "MFG":
+                result["manufacturer"] = val
+
+            elif key == "MDL":
+                result["model"] = val
+
+            elif key == "CLS":
+                result["class"] = val.lower()
+
+    except Exception as err:
+        # optional debug
+        # _LOGGER.warning(f"Parser error: {err}")
+        pass
+
+    return result
 
 
 # =========================
@@ -71,10 +109,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     device_class = None
 
                     if info:
-                        info_str = str(info)
+                        parsed = parse_device_info(info_str)
 
-                        model = _extract_model(info_str)
-                        device_class = _extract_class(info_str)
+                        model = parsed.get("model")
+                        device_class = parsed.get("class")
+                        
+                        # 🔥 DEBUG HIER
+                        _LOGGER.warning(f"PARSED CLASS: {device_class}")
 
                         _LOGGER.warning(
                             f"DEVICE INFO: model={model}, class={device_class}"
