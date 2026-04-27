@@ -1,13 +1,15 @@
 {
   "domain": "brother_snmp_v2",
   "name": "Brother SNMP Scanner",
-  "version": "1.4.35",
+  "version": "1.4.36",
   "integration_type": "device",
   "config_flow": true,
   "documentation": "https://github.com/arator68/brother-snmp-v2",
   "issue_tracker": "https://github.com/arator68/brother-snmp-v2/issues",
   "codeowners": ["@arator68"],
-  "requirements": [],
+  "requirements": [
+    "pysnmp>=5.0.0"
+  ],
   "iot_class": "local_polling",
   "homeassistant": "2023.1.0"
 }

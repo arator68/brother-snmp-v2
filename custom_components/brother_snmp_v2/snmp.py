@@ -1,37 +1,48 @@
 import asyncio
-import subprocess
 import logging
+
+from pysnmp.hlapi.asyncio import nextCmd, SnmpEngine
+from pysnmp.hlapi.asyncio import (
+    CommunityData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def snmp_walk(host, community, base_oid):
-    loop = asyncio.get_event_loop()
+    result = {}
 
-    def run():
-        try:
-            result = subprocess.check_output(
-                ["snmpwalk", "-v2c", "-c", community, host, base_oid],
-                stderr=subprocess.DEVNULL,
-                timeout=10,
-            ).decode()
+    try:
+        async for (errorIndication,
+                   errorStatus,
+                   errorIndex,
+                   varBinds) in nextCmd(
+            SnmpEngine(),
+            CommunityData(community),
+            UdpTransportTarget((host, 161)),
+            ContextData(),
+            ObjectType(ObjectIdentity(base_oid)),
+            lexicographicMode=False,
+        ):
 
-            data = {}
+            if errorIndication:
+                _LOGGER.error(f"SNMP error: {errorIndication}")
+                return {}
 
-            for line in result.splitlines():
-                if "=" not in line:
-                    continue
+            if errorStatus:
+                _LOGGER.error(f"SNMP error: {errorStatus}")
+                return {}
 
-                oid, val = line.split("=", 1)
-                oid = oid.strip()
-                val = val.split(":", 1)[-1].strip()
+            for varBind in varBinds:
+                oid, value = varBind
+                result[str(oid)] = str(value)
 
-                data[oid] = val
+    except Exception as e:
+        _LOGGER.error(f"SNMP WALK failed: {e}")
+        return {}
 
-            return data
-
-        except Exception as e:
-            _LOGGER.error(f"SNMP WALK failed: {e}")
-            return {}
-
-    return await loop.run_in_executor(None, run)
+    return result
