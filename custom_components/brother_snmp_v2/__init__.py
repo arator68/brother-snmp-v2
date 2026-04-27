@@ -13,6 +13,12 @@ async def async_setup_entry(hass, entry):
 
     # 🔥 shared engine (performance!)
     coordinator.engine = SnmpEngine()
+    
+    # 🔥 HIER EINFÜGEN ↓↓↓
+    coordinator.serial_number = entry.data.get("serial")
+
+    # optional (gut!)
+    coordinator.model = entry.data.get("model")
 
     await coordinator.async_config_entry_first_refresh()
 
