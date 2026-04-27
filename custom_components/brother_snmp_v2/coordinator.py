@@ -70,4 +70,6 @@ class BrotherCoordinator(DataUpdateCoordinator):
         for base, name in GOOD_SCANNER_OIDS.items():
             if oid.startswith(base):
                 return name
+        
+        print("UNKNOWN OID:", oid)  # 🔥 DEBUG
         return None
