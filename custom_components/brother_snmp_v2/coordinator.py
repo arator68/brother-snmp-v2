@@ -20,6 +20,10 @@ def _extract_model(value):
     match = re.search(r'MDL:([^;]+)', value)
     return match.group(1) if match else None
 
+def _extract_class(value):
+    match = re.search(r'CLS:([^;]+)', value)
+    return match.group(1) if match else None
+
 
 class BrotherCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, host, community):
@@ -36,6 +40,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
         # 🔥 Multi-device
         self.serial_number = None
         self.model = None
+        self.device_class = None
 
     async def _async_update_data(self):
         data = {}
@@ -50,17 +55,17 @@ class BrotherCoordinator(DataUpdateCoordinator):
         for oid, value in walk.items():
             value_str = str(value)
 
-            # SERIAL
-            # if "SERIAL=" in value_str:
-            #    serial = _extract_serial(value_str)
-            #    if serial:
-            #        self.serial_number = serial
-
             # MODEL
             if "MDL:" in value_str:
                 model = _extract_model(value_str)
                 if model:
                     self.model = model
+                    
+            # MODEL
+            if "CLS:" in value_str:
+                device_class = _extract_class(value_str)
+                if cls:
+                    self.cls = cls
 
             data[oid] = value
 

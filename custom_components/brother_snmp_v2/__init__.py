@@ -10,7 +10,7 @@ async def async_setup_entry(hass, entry):
         entry.data["host"],
         entry.data["community"],
     )
-
+    
     # 🔥 shared engine (performance!)
     coordinator.engine = SnmpEngine()
     

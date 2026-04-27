@@ -17,6 +17,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             continue  # 🔥 unbekannte ignorieren
 
         sensors.append(BrotherSensor(coordinator, oid, name))
+        
+        sensors.append(BrotherDeviceClassSensor(coordinator))
 
     async_add_entities(sensors)
 
@@ -48,4 +50,26 @@ class BrotherSensor(CoordinatorEntity, SensorEntity):
             manufacturer="Brother",
             model=self.coordinator.model,
             serial_number=self.coordinator.serial_number,  # 🔥 DAS MUSS DA SEIN
+        )
+        
+class BrotherDeviceClassSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+
+    @property
+    def name(self):
+        return "Device Type"
+
+    @property
+    def unique_id(self):
+        return f"{self.coordinator.serial_number}_device_type"
+
+    @property
+    def state(self):
+        return self.coordinator.device_class
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.serial_number)},
         )
