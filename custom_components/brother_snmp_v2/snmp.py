@@ -6,6 +6,17 @@ from homeassistant.util import dt as dt_util
 
 from pysnmp.hlapi import *
 
+from pysnmp.hlapi.v3arch.asyncio import (
+    SnmpEngine,
+    CommunityData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    get_cmd,
+    walk_cmd,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -32,6 +43,39 @@ def _walk(host, community, base_oid):
             result[str(oid)] = str(value)
 
     return result
+
+# =========================
+# WALK 🔥 (FEHLT BEI DIR)
+# =========================
+async def snmp_walk(host, community, base_oid):
+    results = {}
+
+    try:
+        transport = await UdpTransportTarget.create((host, 161))
+
+        async for (
+            error_indication,
+            error_status,
+            _,
+            var_binds,
+        ) in walk_cmd(
+            _ENGINE,
+            CommunityData(community),
+            transport,
+            ContextData(),
+            ObjectType(ObjectIdentity(base_oid)),
+            lexicographicMode=False,
+        ):
+            if error_indication or error_status:
+                break
+
+            for oid, value in var_binds:
+                results[str(oid)] = str(value)
+
+    except Exception as err:
+        _LOGGER.error("SNMP WALK error: %s", err)
+
+    return results
 
 
 class BrotherCoordinator(DataUpdateCoordinator):
