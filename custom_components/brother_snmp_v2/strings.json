@@ -1,9 +1,14 @@
 {
   "config": {
-    "error": {
-      "not_brother": "Device is not a Brother device",
-      "timeout": "Connection timeout",
-      "unknown": "Unknown error"
+    "step": {
+      "user": {
+        "title": "Add Brother Scanner",
+        "description": "Enter scanner details",
+        "data": {
+          "host": "IP Address",
+          "community": "SNMP Community"
+        }
+      }
     }
   }
 }
