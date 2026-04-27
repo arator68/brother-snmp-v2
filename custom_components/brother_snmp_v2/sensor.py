@@ -17,12 +17,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # 🖨️ PRINTER
     # =========================
     if coordinator.device_class == "PRINTER":
-        if coordinator.device_class == "PRINTER":
-            for key in coordinator.data.keys():
-                sensors.append(BrotherPrinterSensor(coordinator, key))
+        for key in coordinator.data.keys():
+            sensors.append(BrotherPrinterSensor(coordinator, key))
 
     # =========================
-    # 📄 SCANNER (nur gute OIDs!)
+    # 📄 SCANNER
     # =========================
     elif coordinator.device_class == "SCANNER":
         walk = coordinator.data.get("walk", {})
@@ -31,13 +30,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
             name = coordinator.friendly_name(oid, value)
 
-            # ❌ ignorieren wenn kein sinnvoller Name
+            # ❌ ignorieren wenn nicht relevant
             if not name:
                 continue
 
-            sensors.append(BrotherWalkSensor(coordinator, oid, name))
+            sensors.append(BrotherScannerSensor(coordinator, oid, name))
 
     async_add_entities(sensors)
+
 
 # =========================
 # 🖨️ PRINTER SENSOR
@@ -57,19 +57,47 @@ class BrotherPrinterSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
-        return self.coordinator.data.get(self._key)
+        value = self.coordinator.data.get(self._key)
 
+        # 🔥 Prozent normalisieren (falls nötig)
+        if self._is_percentage() and isinstance(value, int):
+            if value > 100:
+                return int((value / 255) * 100)
+
+        return value
+
+    # 🔥 Prozent Anzeige
+    @property
+    def native_unit_of_measurement(self):
+        if self._is_percentage():
+            return "%"
+        return None
+
+    # 🔥 Prozent-Erkennung
+    def _is_percentage(self):
+        name = self._key.lower()
+
+        return any(x in name for x in [
+            "toner",
+            "drum",
+            "life",
+            "level",
+        ])
+
+    # 🔥 Icons
     @property
     def icon(self):
         name = self._key.lower()
 
         if "toner" in name:
-            return "mdi:printer"
+            return "mdi:printer-3d"
+        if "drum" in name:
+            return "mdi:cog"
         if "page" in name:
             return "mdi:file-document"
-        if "jam" in name:
+        if "error" in name or "jam" in name:
             return "mdi:alert"
-        return "mdi:printer-outline"
+        return "mdi:printer"
 
     @property
     def device_info(self):
@@ -80,68 +108,26 @@ class BrotherPrinterSensor(CoordinatorEntity, SensorEntity):
 
 
 # =========================
-# 🖨️ PRINTER SENSOR
+# 📄 SCANNER SENSOR
 # =========================
-class BrotherAutoSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, config):
-        super().__init__(coordinator)
-        self._config = config
-
-    @property
-    def name(self):
-        return self._config["name"]
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.host}_{self._config['key']}"
-
-    @property
-    def state(self):
-        return self.coordinator.data.get(self._config["key"])
-
-    @property
-    def icon(self):
-        name = self.name.lower()
-
-        if "toner" in name:
-            return "mdi:printer"
-        if "page" in name:
-            return "mdi:file-document"
-        return "mdi:printer-outline"
-
-    @property
-    def device_info(self):
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.host)},
-            manufacturer="Brother",
-        )
-
-
-# =========================
-# 📄 SCANNER SENSOR (CLEAN)
-# =========================
-class BrotherWalkSensor(CoordinatorEntity, SensorEntity):
+class BrotherScannerSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, oid, name):
         super().__init__(coordinator)
         self._oid = oid
         self._name = name
 
-    # 🔥 sauberer Name (aus Whitelist)
     @property
     def name(self):
         return self._name
 
-    # 🔥 eindeutig
     @property
     def unique_id(self):
         return f"{self.coordinator.host}_{self._oid}"
 
-    # 🔥 stabiler State
     @property
     def state(self):
         return self.coordinator.data.get("walk", {}).get(self._oid)
 
-    # 🔥 bessere Icons
     @property
     def icon(self):
         name = self._name.lower()
