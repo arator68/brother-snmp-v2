@@ -62,7 +62,7 @@ async def snmp_walk(host, community, base_oid):
             _,
             var_binds,
         ) in walk_cmd(
-            _ENGINE,
+            SnmpEngine(),
             CommunityData(community),
             transport,
             ContextData(),
