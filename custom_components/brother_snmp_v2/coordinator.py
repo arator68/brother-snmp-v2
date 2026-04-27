@@ -6,6 +6,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_walk
 from .const import SCANNER_BASE_OID
+from .const import GOOD_SCANNER_OIDS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,3 +65,9 @@ class BrotherCoordinator(DataUpdateCoordinator):
             data[oid] = value
 
         return {"walk": data}
+    
+    def friendly_name(self, oid):
+        for base, name in GOOD_SCANNER_OIDS.items():
+            if oid.startswith(base):
+                return name
+        return None

@@ -11,19 +11,25 @@ async def async_setup_entry(hass, entry, async_add_entities):
     sensors = []
 
     for oid, value in coordinator.data.get("walk", {}).items():
-        sensors.append(BrotherSensor(coordinator, oid))
+        name = coordinator.friendly_name(oid)
+
+        if not name:
+            continue  # 🔥 unbekannte ignorieren
+
+        sensors.append(BrotherSensor(coordinator, oid, name))
 
     async_add_entities(sensors)
 
 
 class BrotherSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, oid):
+    def __init__(self, coordinator, oid, name):
         super().__init__(coordinator)
         self._oid = oid
+        self._name = name
 
     @property
     def name(self):
-        return self._oid
+        return self._name
 
     @property
     def unique_id(self):
