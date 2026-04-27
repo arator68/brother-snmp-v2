@@ -18,7 +18,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
         sensors.append(BrotherSensor(coordinator, oid, name))
         
-        sensors.append(BrotherDeviceClassSensor(coordinator))
+    sensors.append(BrotherDeviceClassSensor(coordinator))
 
     async_add_entities(sensors)
 
