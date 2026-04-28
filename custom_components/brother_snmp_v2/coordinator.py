@@ -7,6 +7,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .snmp import snmp_walk
 from .const import SCANNER_BASE_OID
 from .const import GOOD_SCANNER_OIDS
+from .config_flow import parse_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,17 +56,16 @@ class BrotherCoordinator(DataUpdateCoordinator):
         for oid, value in walk.items():
             value_str = str(value)
 
-            # MODEL
-            if "MDL:" in value_str:
-                model = _extract_model(value_str)
-                if model:
-                    self.model = model
-                    
-            # Device Class
-            if "CLS:" in value_str:
-                device_class = _extract_class(value_str)
-                if device_class:
-                    self.device_class = device_class
+            parsed = parse_device_info(value_str)
+
+            if parsed:
+                if parsed.get("model") and not self.model:
+                    self.model = parsed["model"]
+
+                if parsed.get("class") and not self.device_class:
+                    self.device_class = parsed["class"]
+
+                _LOGGER.warning(f"PARSED DEVICE: {parsed}")
 
             data[oid] = value
 
