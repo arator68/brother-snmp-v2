@@ -100,7 +100,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     # =========================
                     # MODEL + CLASS holen
                     # =========================
-                    info = await asyncio.wait_for(
+                    info_str = await asyncio.wait_for(
                         snmp_get(engine, host, community, INFO_OID),
                         timeout=5,
                     )
@@ -108,7 +108,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     model = None
                     device_class = None
 
-                    if info:
+                    if info_str:
                         parsed = parse_device_info(info_str)
 
                         model = parsed.get("model")
