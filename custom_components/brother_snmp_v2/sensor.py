@@ -3,6 +3,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
+from .const import GOOD_SCANNER_OIDS
 
 
 # =========================
@@ -89,22 +90,28 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     sensors = []
 
-    # =========================
-    # OID SENSOR GENERATION
-    # =========================
-    for oid, value in coordinator.data.items():
+    data = coordinator.data
 
-        # 🔥 interne keys überspringen
+    # =========================
+    # 1. KNOWN SENSORS FIRST
+    # =========================
+    for oid, name in coordinator.GOOD_SCANNER_OIDS.items():
+        if oid in data and data[oid] not in (None, ""):
+            sensors.append(BrotherSensor(coordinator, oid, name))
+
+    # =========================
+    # 2. OPTIONAL: UNKNOWN OIDS
+    # =========================
+    for oid, value in data.items():
+
+        if oid in coordinator.GOOD_SCANNER_OIDS:
+            continue
+
         if oid in ["status"]:
             continue
 
-        name = coordinator.friendly_name(oid)
-
-        # fallback → OID anzeigen
-        if not name:
-            name = f"OID {oid}"
-
-        sensors.append(BrotherSensor(coordinator, oid, name))
+        # Debug Sensoren
+        sensors.append(BrotherSensor(coordinator, oid, f"OID {oid}"))
 
     # =========================
     # EXTRA SENSOR
