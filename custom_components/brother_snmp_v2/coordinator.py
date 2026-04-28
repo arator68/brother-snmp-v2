@@ -1,123 +1,137 @@
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceInfo
+import logging
+from datetime import timedelta
 
-from .const import DOMAIN
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from .snmp import snmp_walk
 
-# 🔥 optional: alles anzeigen oder nur bekannte
-SHOW_ALL_OIDS = False
-
-
-# =========================
-# STANDARD SENSOR
-# =========================
-class BrotherSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, oid, name):
-        super().__init__(coordinator)
-        self.oid = oid
-        self._attr_name = name
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.serial_number}_{self.oid}"
-
-    @property
-    def state(self):
-        return self.coordinator.data.get(self.oid)
-
-    @property
-    def device_info(self):
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.serial_number)},
-            name=self.coordinator.model or "Brother Device",
-            manufacturer="Brother",
-            model=self.coordinator.model,
-            serial_number=self.coordinator.serial_number,
-        )
+_LOGGER = logging.getLogger(__name__)
 
 
 # =========================
-# DEVICE TYPE SENSOR
+# PARSER
 # =========================
-class BrotherDeviceClassSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator):
-        super().__init__(coordinator)
-        self._attr_name = "Device Type"
+def parse_device_info(value: str) -> dict:
+    """Parse Brother device info string."""
+    if not value:
+        return {}
 
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.serial_number}_device_type"
+    result = {}
 
-    @property
-    def state(self):
-        return self.coordinator.device_class or "unknown"
-
-    @property
-    def device_info(self):
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.serial_number)},
-        )
-
-
-# =========================
-# STATUS SENSOR (optional)
-# =========================
-class BrotherStatusSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator):
-        super().__init__(coordinator)
-        self._attr_name = "Status"
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.serial_number}_status"
-
-    @property
-    def state(self):
-        return self.coordinator.data.get("status", "unknown")
-
-    @property
-    def device_info(self):
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.serial_number)},
-        )
-
-
-# =========================
-# SETUP
-# =========================
-async def async_setup_entry(hass, entry, async_add_entities):
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
-
-    sensors = []
-    snmp_data = coordinator.data
-
-    # =========================
-    # 🔥 1. BEKANNTE SENSORN
-    # =========================
-    for oid, name in coordinator.GOOD_SCANNER_OIDS.items():
-        if oid in snmp_data and snmp_data[oid] not in (None, ""):
-            sensors.append(BrotherSensor(coordinator, oid, name))
-
-    # =========================
-    # 🔥 2. OPTIONAL: ALLE OIDs
-    # =========================
-    if SHOW_ALL_OIDS:
-        for oid, value in snmp_data.items():
-
-            if oid in coordinator.GOOD_SCANNER_OIDS:
+    try:
+        for part in value.split(";"):
+            if ":" not in part:
                 continue
 
-            if oid in ["status"]:
-                continue
+            key, val = part.split(":", 1)
 
-            sensors.append(BrotherSensor(coordinator, oid, f"OID {oid}"))
+            key = key.strip().upper()
+            val = val.strip()
+
+            if key == "MFG":
+                result["manufacturer"] = val
+            elif key == "MDL":
+                result["model"] = val
+            elif key == "CLS":
+                result["class"] = val.lower()
+
+    except Exception as err:
+        _LOGGER.warning(f"Parser error: {err}")
+
+    return result
+
+
+# =========================
+# COORDINATOR
+# =========================
+class BrotherCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, host, community):
+        super().__init__(
+            hass,
+            _LOGGER,
+            name="Brother SNMP",
+            update_interval=timedelta(seconds=30),
+        )
+
+        self.host = host
+        self.community = community
+
+        # 🔥 wird in __init__.py gesetzt
+        self.engine = None
+
+        # 🔥 Geräte-Infos
+        self.serial_number = None
+        self.model = None
+        self.device_class = None
+
+        # 🔥 bekannte Sensoren
+        self.GOOD_SCANNER_OIDS = {
+            "1.3.6.1.2.1.43.10.2.1.4.1.1": "Printed Pages",
+        }
+
+        self.data = {}
 
     # =========================
-    # 🔥 EXTRA SENSORN
+    # UPDATE
     # =========================
-    sensors.append(BrotherDeviceClassSensor(coordinator))
-    sensors.append(BrotherStatusSensor(coordinator))
+    async def _async_update_data(self):
+        """Fetch data via SNMP."""
 
-    async_add_entities(sensors)
+        data = {}
+
+        try:
+            walk = await snmp_walk(
+                self.engine,
+                self.host,
+                self.community,
+                "1.3.6.1.4.1.2435",
+            )
+
+            _LOGGER.warning(f"SNMP WALK: {len(walk)} values")
+
+            for oid, value in walk.items():
+                value_str = str(value)
+
+                # =========================
+                # DEVICE INFO PARSEN
+                # =========================
+                parsed = parse_device_info(value_str)
+
+                if parsed:
+                    if parsed.get("model") and not self.model:
+                        self.model = parsed["model"]
+
+                    if parsed.get("class") and not self.device_class:
+                        self.device_class = parsed["class"]
+
+                    _LOGGER.warning(f"PARSED DEVICE: {parsed}")
+
+                # =========================
+                # OID speichern
+                # =========================
+                data[oid] = value_str
+
+            # =========================
+            # STATUS setzen
+            # =========================
+            data["status"] = "online"
+
+        except Exception as err:
+            _LOGGER.error(f"SNMP update failed: {err}")
+            data["status"] = "error"
+
+        # 🔥 Debug
+        _LOGGER.warning(f"FINAL DATA KEYS: {list(data.keys())[:5]} ...")
+
+        return data
+
+    # =========================
+    # FRIENDLY NAME
+    # =========================
+    def friendly_name(self, oid):
+        """Return friendly name for OID."""
+
+        if oid in self.GOOD_SCANNER_OIDS:
+            return self.GOOD_SCANNER_OIDS[oid]
+
+        return None
