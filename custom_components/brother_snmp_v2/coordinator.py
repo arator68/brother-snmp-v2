@@ -1,79 +1,123 @@
-import logging
-import re
-from datetime import timedelta
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.device_registry import DeviceInfo
 
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
-from .snmp import snmp_walk
-from .const import SCANNER_BASE_OID
-from .const import GOOD_SCANNER_OIDS
-from .config_flow import parse_device_info
-
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN
 
 
-def _extract_serial(value):
-    match = re.search(r'SERIAL="([^"]+)"', value)
-    return match.group(1) if match else None
+# 🔥 optional: alles anzeigen oder nur bekannte
+SHOW_ALL_OIDS = False
 
 
-def _extract_model(value):
-    match = re.search(r'MDL:([^;]+)', value)
-    return match.group(1) if match else None
+# =========================
+# STANDARD SENSOR
+# =========================
+class BrotherSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator, oid, name):
+        super().__init__(coordinator)
+        self.oid = oid
+        self._attr_name = name
 
-def _extract_class(value):
-    match = re.search(r'CLS:([^;]+)', value)
-    return match.group(1) if match else None
+    @property
+    def unique_id(self):
+        return f"{self.coordinator.serial_number}_{self.oid}"
 
+    @property
+    def state(self):
+        return self.coordinator.data.get(self.oid)
 
-class BrotherCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, host, community):
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="Brother SNMP",
-            update_interval=timedelta(seconds=30),
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.serial_number)},
+            name=self.coordinator.model or "Brother Device",
+            manufacturer="Brother",
+            model=self.coordinator.model,
+            serial_number=self.coordinator.serial_number,
         )
 
-        self.host = host
-        self.community = community
 
-        # 🔥 Multi-device
-        self.serial_number = None
-        self.model = None
-        self.device_class = None
+# =========================
+# DEVICE TYPE SENSOR
+# =========================
+class BrotherDeviceClassSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "Device Type"
 
-    async def _async_update_data(self):
-        data = {}
+    @property
+    def unique_id(self):
+        return f"{self.coordinator.serial_number}_device_type"
 
-        walk = await snmp_walk(
-            self.engine,
-            self.host,
-            self.community,
-            SCANNER_BASE_OID,
+    @property
+    def state(self):
+        return self.coordinator.device_class or "unknown"
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.serial_number)},
         )
 
-        for oid, value in walk.items():
-            value_str = str(value)
 
-            parsed = parse_device_info(value_str)
+# =========================
+# STATUS SENSOR (optional)
+# =========================
+class BrotherStatusSensor(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "Status"
 
-            if parsed:
-                if parsed.get("model") and not self.model:
-                    self.model = parsed["model"]
+    @property
+    def unique_id(self):
+        return f"{self.coordinator.serial_number}_status"
 
-                if parsed.get("class") and not self.device_class:
-                    self.device_class = parsed["class"]
+    @property
+    def state(self):
+        return self.coordinator.data.get("status", "unknown")
 
-                _LOGGER.warning(f"PARSED DEVICE: {parsed}")
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.coordinator.serial_number)},
+        )
 
-            data[oid] = value
 
-        return {"walk": data}
-    
-    def friendly_name(self, oid):
-        for base, name in GOOD_SCANNER_OIDS.items():
-            if oid.startswith(base):
-                return name
-        
-        return None
+# =========================
+# SETUP
+# =========================
+async def async_setup_entry(hass, entry, async_add_entities):
+    data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data["coordinator"]
+
+    sensors = []
+    snmp_data = coordinator.data
+
+    # =========================
+    # 🔥 1. BEKANNTE SENSORN
+    # =========================
+    for oid, name in coordinator.GOOD_SCANNER_OIDS.items():
+        if oid in snmp_data and snmp_data[oid] not in (None, ""):
+            sensors.append(BrotherSensor(coordinator, oid, name))
+
+    # =========================
+    # 🔥 2. OPTIONAL: ALLE OIDs
+    # =========================
+    if SHOW_ALL_OIDS:
+        for oid, value in snmp_data.items():
+
+            if oid in coordinator.GOOD_SCANNER_OIDS:
+                continue
+
+            if oid in ["status"]:
+                continue
+
+            sensors.append(BrotherSensor(coordinator, oid, f"OID {oid}"))
+
+    # =========================
+    # 🔥 EXTRA SENSORN
+    # =========================
+    sensors.append(BrotherDeviceClassSensor(coordinator))
+    sensors.append(BrotherStatusSensor(coordinator))
+
+    async_add_entities(sensors)
