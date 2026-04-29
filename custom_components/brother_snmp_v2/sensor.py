@@ -90,15 +90,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     sensors = []
 
-    data = coordinator.data or {}
+    data = coordinator.data
 
     # =========================
-    # 🔥 NUR BEKANNTE SENSORN
+    # 1. KNOWN SENSORS FIRST
     # =========================
     for oid, name in coordinator.GOOD_SCANNER_OIDS.items():
-        value = snmp_data.get(oid)
-
-        if value not in (None, ""):
+        if oid in data and data[oid] not in (None, ""):
             sensors.append(BrotherSensor(coordinator, oid, name))
 
     # =========================
