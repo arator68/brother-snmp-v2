@@ -3,7 +3,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
-from .const import GOOD_SCANNER_OIDS
 
 
 # =========================
@@ -21,7 +20,8 @@ class BrotherSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
-        return self.coordinator.data.get(self.oid)
+        # 🔥 wichtig: kein None → HA zeigt sonst nichts
+        return self.coordinator.data.get(self.oid, "unknown")
 
     @property
     def device_info(self):
@@ -48,7 +48,6 @@ class BrotherDeviceClassSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
-        # 🔥 wichtig → nie None anzeigen
         return self.coordinator.device_class or "unknown"
 
     @property
@@ -59,7 +58,7 @@ class BrotherDeviceClassSensor(CoordinatorEntity, SensorEntity):
 
 
 # =========================
-# STATUS SENSOR (optional)
+# STATUS SENSOR
 # =========================
 class BrotherStatusSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator):
@@ -90,31 +89,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     sensors = []
 
-    data = coordinator.data
-
     # =========================
-    # 1. KNOWN SENSORS FIRST
+    # 🔥 NUR BEKANNTE SENSORN
     # =========================
     for oid, name in coordinator.GOOD_SCANNER_OIDS.items():
-        if oid in data and data[oid] not in (None, ""):
-            sensors.append(BrotherSensor(coordinator, oid, name))
+        # 🔥 WICHTIG: KEIN data-check!
+        sensors.append(BrotherSensor(coordinator, oid, name))
 
     # =========================
-    # 2. OPTIONAL: UNKNOWN OIDS
-    # =========================
-    # for oid, value in data.items():
-
-    #     if oid in coordinator.GOOD_SCANNER_OIDS:
-    #         continue
-
-    #     if oid in ["status"]:
-    #         continue
-
-    #     # Debug Sensoren
-    #     sensors.append(BrotherSensor(coordinator, oid, f"OID {oid}"))
-
-    # =========================
-    # EXTRA SENSOR
+    # 🔥 IMMER hinzufügen
     # =========================
     sensors.append(BrotherDeviceClassSensor(coordinator))
     sensors.append(BrotherStatusSensor(coordinator))

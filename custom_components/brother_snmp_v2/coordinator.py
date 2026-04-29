@@ -65,16 +65,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
         self.model = None
         self.device_class = None
 
-        # 🔥 bekannte Sensoren
-        # self.GOOD_SCANNER_OIDS = {
-        #     "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.54.2.2.1.3.3": "Scan Pages",
-        #     "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.18": "Pickup Roller",
-        #     "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.19": "Separation Roller",
-        #     "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.33.1.1.20": "Feed Roller",
-        #     "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.1.0": "Serialnumber",
-        #     "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.17.0": "Firmware",
-        # }
-        
+        # 🔥 bekannte Sensoren Scanner  
         self.GOOD_SCANNER_OIDS = GOOD_SCANNER_OIDS
 
         self.data = {}
