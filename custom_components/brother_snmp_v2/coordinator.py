@@ -5,6 +5,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .snmp import snmp_walk
 from .const import GOOD_SCANNER_OIDS
+from .const import GOOD_PRINTER_OIDS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         # 🔥 bekannte Sensoren Scanner  
         self.GOOD_SCANNER_OIDS = GOOD_SCANNER_OIDS
+        self.GOOD_PRINTER_OIDS = GOOD_PRINTER_OIDS
 
         self.data = {}
 
@@ -104,6 +106,8 @@ class BrotherCoordinator(DataUpdateCoordinator):
                         self.device_class = parsed["class"]
 
                     _LOGGER.warning(f"PARSED DEVICE: {parsed}")
+                   
+                
 
                 # =========================
                 # OID speichern
@@ -113,7 +117,10 @@ class BrotherCoordinator(DataUpdateCoordinator):
             # =========================
             # STATUS setzen
             # =========================
-            data["status"] = "online"
+            if walk:
+                data["status"] = "online"
+            else:
+                data["status"] = "error"
 
         except Exception as err:
             _LOGGER.error(f"SNMP update failed: {err}")
@@ -132,5 +139,8 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         if oid in self.GOOD_SCANNER_OIDS:
             return self.GOOD_SCANNER_OIDS[oid]
+        
+        if oid in self.GOOD_PRINTER_OIDS:
+            return self.GOOD_PRINTER_OIDS[oid]
 
         return None

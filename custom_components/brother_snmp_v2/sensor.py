@@ -4,6 +4,9 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
 
+from .const import GOOD_SCANNER_OIDS
+from .const import GOOD_PRINTER_OIDS
+
 
 # =========================
 # STANDARD SENSOR
@@ -86,13 +89,32 @@ class BrotherStatusSensor(CoordinatorEntity, SensorEntity):
 async def async_setup_entry(hass, entry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator = data["coordinator"]
+    
+    device_class = coordinator.device_class
+
+    if not device_class:
+        device_class = "scanner"
 
     sensors = []
+    
+   
+    # =========================
+    # 🔥 AUTO ROUTING
+    # =========================
+    if device_class == "scanner":
+        oid_map = GOOD_SCANNER_OIDS
+
+    elif device_class == "printer":
+        oid_map = GOOD_PRINTER_OIDS
+
+    else:
+        # fallback → nichts oder minimal
+        oid_map = {}
 
     # =========================
     # 🔥 NUR BEKANNTE SENSORN
     # =========================
-    for oid, name in coordinator.GOOD_SCANNER_OIDS.items():
+    for oid, name in oid_map.items():
         # 🔥 WICHTIG: KEIN data-check!
         sensors.append(BrotherSensor(coordinator, oid, name))
 
