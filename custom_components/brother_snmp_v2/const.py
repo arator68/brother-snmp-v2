@@ -15,5 +15,5 @@ GOOD_SCANNER_OIDS = {
 }
 
 GOOD_PRINTER_OIDS = {
-    "1.3.6.1.2.1.43.10.2.1.4.1.1": "Printed Pages",
+    "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.1.2.63.25.1.2": "Printed Pages S/W",
 }
