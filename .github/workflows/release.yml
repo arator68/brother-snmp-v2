@@ -3,28 +3,51 @@ name: HACS Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
+      # Repo holen
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read version from manifest
-        id: get_version
+      # Version aus manifest lesen
+      - name: Get version
+        id: version
         run: |
           VERSION=$(jq -r '.version' custom_components/brother_snmp_v2/manifest.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create Git tag
-        run: |
-          git tag v${{ steps.get_version.outputs.version }}
-          git push origin v${{ steps.get_version.outputs.version }}
+      # Debug (optional)
+      - name: Show version
+        run: echo "Version is ${{ steps.version.outputs.version }}"
 
-      - name: Create GitHub Release
+      # Tag erstellen (nur wenn nicht existiert)
+      - name: Create tag
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag already exists"
+          else
+            git tag $TAG
+            git push origin $TAG
+          fi
+
+      # ZIP bauen (wichtig für HACS)
+      - name: Create ZIP
+        run: |
+          cd custom_components
+          zip -r ../brother_snmp_v2.zip brother_snmp_v2
+
+      # Release erstellen
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: v${{ steps.get_version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          files: brother_snmp_v2.zip
           generate_release_notes: true
