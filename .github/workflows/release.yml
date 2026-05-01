@@ -29,7 +29,7 @@ jobs:
       # Tag erstellen (nur wenn nicht existiert)
       - name: Create tag
         run: |
-          TAG="v${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.version }}"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag already exists"
           else
