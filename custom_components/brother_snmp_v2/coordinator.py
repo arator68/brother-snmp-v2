@@ -89,6 +89,9 @@ class BrotherCoordinator(DataUpdateCoordinator):
             )
 
             _LOGGER.warning(f"SNMP WALK: {len(walk)} values")
+            
+            if not self.device_class:
+                self.device_class = self.detect_device_class(walk)
 
             for oid, value in walk.items():
                 value_str = str(value)
@@ -144,3 +147,47 @@ class BrotherCoordinator(DataUpdateCoordinator):
             return self.GOOD_PRINTER_OIDS[oid]
 
         return None
+    
+    def detect_device_class(self, walk: dict):
+        """Robuste Geräteerkennung (Brother zuverlässig)."""
+
+        # =========================
+        # 1. PRINTER OIDs (BEST)
+        # =========================
+        PRINTER_OIDS = [
+            "1.3.6.1.2.1.43.10.2.1.4.1.1",  # Page counter
+        ]
+
+        for oid in PRINTER_OIDS:
+            if oid in walk:
+                return "printer"
+
+        # =========================
+        # 2. SCANNER OIDs
+        # =========================
+        SCANNER_HINTS = [
+            "scan",
+            "adf",
+        ]
+
+        for value in walk.values():
+            value_str = str(value).lower()
+            if any(hint in value_str for hint in SCANNER_HINTS):
+                return "scanner"
+
+        # =========================
+        # 3. MODEL CHECK
+        # =========================
+        if self.model:
+            model = self.model.upper()
+
+            if model.startswith(("HL-", "DCP-", "MFC-")):
+                return "printer"
+
+            if model.startswith(("ADS-",)):
+                return "scanner"
+
+        # =========================
+        # 4. FALLBACK
+        # =========================
+        return "unknown"
