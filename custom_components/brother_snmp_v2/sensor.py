@@ -92,8 +92,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     
     device_class = coordinator.device_class
 
-    if not device_class:
-        device_class = "scanner"
+    #if not device_class:
+        #device_class = "scanner"
+        
+    device_class = coordinator.device_class or "scanner"
 
     sensors = []
     
