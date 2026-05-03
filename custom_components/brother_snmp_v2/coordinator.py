@@ -145,6 +145,10 @@ class BrotherCoordinator(DataUpdateCoordinator):
         
         if oid in self.GOOD_PRINTER_OIDS:
             return self.GOOD_PRINTER_OIDS[oid]
+        
+        for base_oid, name in self.GOOD_PRINTER_OIDS.items():
+            if oid.startswith(base_oid):
+                return name
 
         return None
     
