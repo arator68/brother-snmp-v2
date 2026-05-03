@@ -134,6 +134,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
 
         return data
 
+
     # =========================
     # FRIENDLY NAME
     # =========================
