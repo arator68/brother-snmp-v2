@@ -87,6 +87,7 @@ class BrotherCoordinator(DataUpdateCoordinator):
                 self.community,
                 "1.3.6.1.4.1.2435",
             )
+            
 
             _LOGGER.warning(f"SNMP WALK: {len(walk)} values")
             
